@@ -139,19 +139,6 @@ export function rosterOf(team) {
   return team.members.length ? team.members : [{ id: team.id, name: team.name }];
 }
 
-/** Turns "Sam, Alex" into team members. People already on the team keep their id (and their turn history). */
-export function parseMembers(text, existing = []) {
-  const names = String(text)
-    .split(/[,\n]/)
-    .map((n) => n.trim().slice(0, 24))
-    .filter(Boolean);
-  const unused = [...existing];
-  return names.map((name) => {
-    const i = unused.findIndex((m) => m.name.toLowerCase() === name.toLowerCase());
-    return i >= 0 ? { id: unused.splice(i, 1)[0].id, name } : { id: uid(), name };
-  });
-}
-
 /** Players with the most points, or none if nobody has scored. */
 export function leaders() {
   const top = Math.max(0, ...state.players.map((p) => p.score));

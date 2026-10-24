@@ -41,14 +41,14 @@ Each visitor gets their own copy of the games and scores, saved in their browser
 
 ## Playing in teams
 
-On the scoreboard, click **Edit** and type each team's members under its name, separated by commas (for example `Sam, Alex, Jordan`). Then:
+On the scoreboard, click **Edit**, then **+ Add players** under a team and add its players one at a time (type a name, press <kbd>Enter</kbd>, type the next). Each player gets their own line, with an × to remove them. Then:
 
 - **Who's up?** spins once for each team and picks one person from it, so it's one player vs one player (for example "Jordan vs Casey"). Use **Per team** to pick 2 or 3 from each team instead.
 - Each team takes turns in order, so everyone on a team plays before anyone on that team goes twice.
 - Points go to the team. Time's Up shows who played for each team.
 - A team named after a color ("Blue Team") gets that color.
 
-Leave the members empty to play as individuals.
+Don't add any players to a team to play as individuals.
 
 ## Editing games
 

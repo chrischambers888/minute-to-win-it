@@ -434,6 +434,11 @@ body.is-spinning .hint {
   max-height: 54vh;
 }
 
+/* More room while adding teams and players. */
+.scoreboard:has(.is-editing) {
+  max-height: 74vh;
+}
+
 .games-left {
   flex: 0 1 auto;
 }
@@ -523,11 +528,57 @@ body.is-spinning .hint {
   box-shadow: inset 0.3em 0 0 var(--team);
 }
 
-.members-input {
+/* Edit: one line per team member */
+.member-list {
   grid-column: 1 / -1;
+  list-style: none;
+  margin: 0.1em 0 0.45em 0.55em;
+  padding: 0 0 0 0.7em;
+  border-left: 2px solid var(--surface-line);
+  display: grid;
+  gap: 0.3em;
+}
+
+.member-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.4em;
+}
+
+.member-row:last-child {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.member-input,
+.add-member input {
   min-width: 0;
-  margin-bottom: 0.35em;
   font-size: 15px !important;
+  padding: 0.4em 0.65em !important;
+}
+
+.add-member {
+  display: flex;
+  gap: 0.4em;
+}
+
+.add-member input {
+  flex: 1;
+  background: transparent !important;
+  border-style: dashed !important;
+}
+
+.add-member .btn-small {
+  font-size: 15px;
+}
+
+.add-members-link {
+  grid-column: 1 / -1;
+  justify-self: start;
+  margin: -0.1em 0 0.35em 0.6em;
+  font-size: 0.85em;
+  white-space: normal;
+  text-align: left;
 }
 
 .score-tip {

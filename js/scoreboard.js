@@ -1,15 +1,41 @@
 // Scoreboard on the wheel screen, plus the "give a point" buttons after the clock runs out.
-import { state, update, subscribe, newPlayer, leaders, teamMode, parseMembers } from './store.js';
+import { state, update, subscribe, newPlayer, leaders, teamMode, uid } from './store.js';
 import { teamColors } from './wheel.js';
 
 const esc = (s) =>
   String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+
+const xIcon = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>`;
 
 const crown = `<svg class="crown" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18h18l-1.5-10-5 4L12 5l-2.5 7-5-4z" fill="currentColor"/></svg>`;
 
 /** onCrown: called when the host clicks "Crown the winner". */
 export function mountScoreboard(el, { onCrown } = {}) {
   let editing = false;
+  const addingTo = new Set(); // entries showing an "Add a player" line before they have any members
+
+  /** In Edit: one line per team member, plus a line to add another. */
+  function membersEditor(p) {
+    if (!p.members.length && !addingTo.has(p.id)) {
+      return `<button class="link-btn subtle add-members-link" type="button" data-act="start-members" data-id="${p.id}" aria-label="Add players to ${esc(p.name)}">+ Add players</button>`;
+    }
+    return `<ul class="member-list" aria-label="Players on ${esc(p.name)}">
+        ${p.members
+          .map(
+            (m) => `<li class="member-row">
+              <input class="member-input" data-team="${p.id}" data-member="${m.id}" value="${esc(m.name)}" aria-label="Name for ${esc(m.name)} on ${esc(p.name)}" maxlength="24">
+              <button class="icon-btn small danger" type="button" data-act="remove-member" data-id="${p.id}" data-member="${m.id}" aria-label="Remove ${esc(m.name)} from ${esc(p.name)}" title="Remove">${xIcon}</button>
+            </li>`,
+          )
+          .join('')}
+        <li class="member-row">
+          <form class="add-member" data-team="${p.id}" autocomplete="off">
+            <input name="member" placeholder="Add a player to ${esc(p.name)}" maxlength="24" aria-label="Add a player to ${esc(p.name)}">
+            <button class="btn btn-small btn-quiet" type="submit">Add</button>
+          </form>
+        </li>
+      </ul>`;
+  }
 
   function render() {
     const top = new Set(leaders().map((p) => p.id));
@@ -22,11 +48,8 @@ export function mountScoreboard(el, { onCrown } = {}) {
         editing
           ? `<li class="player is-editing">
               <input class="player-name-input" data-id="${p.id}" value="${esc(p.name)}" aria-label="Name for ${esc(p.name)}" maxlength="24">
-              <button class="icon-btn small danger" data-act="remove" data-id="${p.id}" aria-label="Remove ${esc(p.name)}" title="Remove">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
-              </button>
-              <input class="members-input" data-id="${p.id}" value="${esc(p.members.map((m) => m.name).join(', '))}"
-                placeholder="Team members (optional): Sam, Alex" aria-label="Team members for ${esc(p.name)}, separated by commas" maxlength="400">
+              <button class="icon-btn small danger" data-act="remove" data-id="${p.id}" aria-label="Remove ${esc(p.name)}" title="Remove">${xIcon}</button>
+              ${membersEditor(p)}
             </li>`
           : `<li class="player ${top.has(p.id) ? 'is-leader' : ''} ${teams ? 'has-team' : ''}" style="--team: ${colors[i]}">
               <span class="player-label">
@@ -47,7 +70,7 @@ export function mountScoreboard(el, { onCrown } = {}) {
         ${empty ? '' : `<button class="link-btn" data-act="toggle-edit">${editing ? 'Done' : 'Edit'}</button>`}
       </div>
       ${empty ? '<p class="panel-empty">Add players or teams to keep score.</p>' : `<ol class="players">${rows}</ol>`}
-      ${editing ? '<p class="score-tip">Playing in teams? List each team’s members. <b>Who’s up?</b> then picks one person from every team.</p>' : ''}
+      ${editing ? '<p class="score-tip">Playing in teams? Add each team’s players under its name. <b>Who’s up?</b> then picks one person from every team.</p>' : ''}
       ${
         editing || empty
           ? `<form class="add-player" autocomplete="off">
@@ -67,6 +90,7 @@ export function mountScoreboard(el, { onCrown } = {}) {
     const { act, id } = btn.dataset;
     if (act === 'toggle-edit') {
       editing = !editing;
+      addingTo.clear();
       render();
     } else if (act === 'plus' || act === 'minus') {
       update((s) => {
@@ -79,6 +103,17 @@ export function mountScoreboard(el, { onCrown } = {}) {
       });
       if (!state.players.length) editing = false;
       render();
+    } else if (act === 'start-members') {
+      addingTo.add(id);
+      render();
+      focusAddMember(id);
+    } else if (act === 'remove-member') {
+      addingTo.add(id); // keep the "Add a player" line even if that was the last one
+      update((s) => {
+        const p = s.players.find((x) => x.id === id);
+        if (p) p.members = p.members.filter((m) => m.id !== btn.dataset.member);
+      });
+      render();
     } else if (act === 'reset-scores') {
       if (confirm('Set every score back to 0?'))
         update((s) => {
@@ -90,8 +125,23 @@ export function mountScoreboard(el, { onCrown } = {}) {
     }
   });
 
+  const focusAddMember = (teamId) => el.querySelector(`.add-member[data-team="${teamId}"] input`)?.focus();
+
   el.addEventListener('submit', (e) => {
     e.preventDefault();
+    if (e.target.matches('.add-member')) {
+      const teamId = e.target.dataset.team;
+      const input = e.target.elements.member;
+      const name = input.value.trim();
+      if (!name) return input.focus();
+      update((s) => {
+        const p = s.players.find((x) => x.id === teamId);
+        if (p) p.members.push({ id: uid(), name });
+      });
+      render();
+      focusAddMember(teamId); // ready for the next player
+      return;
+    }
     const input = e.target.elements.name;
     const name = input.value.trim();
     if (!name) return input.focus();
@@ -102,19 +152,23 @@ export function mountScoreboard(el, { onCrown } = {}) {
   });
 
   el.addEventListener('change', (e) => {
-    const input = e.target.closest('.player-name-input, .members-input');
-    if (!input) return;
+    const input = e.target.closest('.player-name-input, .member-input');
+    const name = input?.value.trim();
+    if (!name) return;
     update((s) => {
-      const p = s.players.find((x) => x.id === input.dataset.id);
-      if (!p) return;
-      if (input.matches('.members-input')) p.members = parseMembers(input.value, p.members);
-      else if (input.value.trim()) p.name = input.value.trim();
+      if (input.matches('.member-input')) {
+        const m = s.players.find((x) => x.id === input.dataset.team)?.members.find((x) => x.id === input.dataset.member);
+        if (m) m.name = name;
+      } else {
+        const p = s.players.find((x) => x.id === input.dataset.id);
+        if (p) p.name = name;
+      }
     });
   });
 
-  // Enter saves a name or member list.
+  // Enter saves a renamed player or team.
   el.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && e.target.matches('.player-name-input, .members-input')) {
+    if (e.key === 'Enter' && e.target.matches('.player-name-input, .member-input')) {
       e.preventDefault();
       e.target.blur();
     }
