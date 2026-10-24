@@ -2,6 +2,8 @@
 
 A game-night website: spin the wheel, read the game, start the official 60-second clock.
 
+**Play it:** <https://minute-to-win-it-pi.vercel.app>
+
 It's a plain static site (HTML, CSS and JavaScript, no build step), hosted on Vercel from this repo. Every push to `main` updates the live site.
 
 ## Run it on your own computer
