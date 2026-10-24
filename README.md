@@ -56,7 +56,7 @@ In **Manage games**, **Game type** makes a game a normal game or one of these, a
 - Pricing $: add your own products (name, price, and a picture or emoji) and turn starter products off. The 42 starter products have rough, rounded US prices.
 - Memory Flash: how many things to show, and for how many seconds.
 
-Games saved before the screen games existed (and older backups) stay exactly as they were, as normal games. To get the screen games, use **Restore original games**, or open your Math Wizz or Pricing $ and change its **Game type**.
+If you played before the screen games existed, your saved Math Wizz and Pricing $ become the screen games automatically, and Cereal Puzzle becomes Memory Flash, as long as you hadn't changed them. Games you edited (and any other saved games or backups) stay exactly as they were. To switch an edited one, change its **Game type**, or use **Restore original games**.
 
 ## Playing in teams
 

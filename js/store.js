@@ -1,6 +1,6 @@
 // App state, saved in this browser's localStorage.
 import { DEFAULT_GAMES, DEFAULT_SETTINGS } from './defaults.js';
-import { screenFields } from './screen-games-data.js';
+import { screenFields, upgradeOriginalGames } from './screen-games-data.js';
 
 const KEY = 'minute-to-win-it:v1';
 const listeners = new Set();
@@ -89,6 +89,7 @@ function normalizeMet(met, ids) {
 }
 
 function normalize(s) {
+  s = upgradeOriginalGames(s); // unedited original Math Wizz, Pricing $ and Cereal Puzzle become the screen games
   const base = freshState();
   const games = Array.isArray(s.games) ? s.games.map(normalizeGame).filter(Boolean) : base.games;
   const ids = new Set(games.map((g) => g.id));

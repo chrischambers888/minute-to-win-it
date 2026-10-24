@@ -202,6 +202,37 @@ const OLD_INSTRUCTIONS = [
   'Players will have to complete the puzzle within 60 seconds. First player to complete the puzzle wins.',
 ];
 
+// The original games that became screen games, as older saves have them. `type` and `id` are what each becomes.
+const ORIGINALS = {
+  'math-wizz': { name: 'Math Wizz', instructions: OLD_INSTRUCTIONS[0], type: 'math', id: 'math-wizz' },
+  pricing: { name: 'Pricing $', instructions: OLD_INSTRUCTIONS[1], type: 'pricing', id: 'pricing' },
+  'cereal-puzzle': { name: 'Cereal Puzzle', instructions: OLD_INSTRUCTIONS[2], type: 'memory', id: 'memory-flash' },
+};
+
+/**
+ * For people who played before the screen games existed: their saved Math Wizz and Pricing $ become the screen
+ * games, and Cereal Puzzle becomes Memory Flash (in the same spot, played or not). Only games nobody has changed
+ * (same name and instructions, no video or picture) are upgraded. Edited games stay as they are.
+ * Takes saved state ({ games, playedIds, ... }) and returns it, upgraded.
+ */
+export function upgradeOriginalGames(saved) {
+  if (!saved || !Array.isArray(saved.games)) return saved;
+  const ids = new Set(saved.games.map((g) => g?.id));
+  const renamed = new Map();
+  const games = saved.games.map((g) => {
+    const o = g && ORIGINALS[g.id];
+    const untouched =
+      o && (!g.type || g.type === 'normal') && g.name === o.name && g.instructions === o.instructions && !g.videoUrl && !g.image;
+    if (!untouched || (o.id !== g.id && ids.has(o.id))) return g;
+    if (o.id !== g.id) renamed.set(g.id, o.id);
+    const { name, instructions } = TYPES[o.type];
+    return { id: o.id, type: o.type, name, instructions, videoUrl: '', image: '', enabled: g.enabled !== false };
+  });
+  if (games.every((g, i) => g === saved.games[i])) return saved;
+  const playedIds = Array.isArray(saved.playedIds) ? saved.playedIds.map((id) => renamed.get(id) ?? id) : saved.playedIds;
+  return { ...saved, games, playedIds };
+}
+
 /** Changes a game's type. Fills in the name and instructions when they're blank or still the standard text. */
 export function applyType(game, type) {
   const next = SCREEN_TYPES.includes(type) ? type : 'normal';
