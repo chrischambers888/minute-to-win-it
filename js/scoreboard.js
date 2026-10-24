@@ -120,6 +120,7 @@ export function mountScoreboard(el, { onCrown } = {}) {
           s.players.forEach((p) => (p.score = 0));
           s.turns = {};
           s.lastUpIds = [];
+          s.met = {};
         });
     } else if (act === 'crown') {
       onCrown?.();

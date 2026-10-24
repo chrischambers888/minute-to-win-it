@@ -18,7 +18,8 @@ function freshState() {
     playedIds: [],
     players: [],
     turns: {}, // "Who's up?": how many times each person has played tonight, by id
-    lastUpIds: [], // who was up for the last game (they sit out next if someone else is due)
+    lastUpIds: [], // who was up for the last game
+    met: {}, // how many games each pair of people has played together ("idA|idB"), for fresh matchups
     settings: clone(DEFAULT_SETTINGS),
   };
 }
@@ -77,6 +78,14 @@ function normalizeTurns(s, ids) {
   return turns;
 }
 
+function normalizeMet(met, ids) {
+  const out = {};
+  if (met && typeof met === 'object') {
+    for (const [pair, n] of Object.entries(met)) if (n > 0 && pair.split('|').every((id) => ids.has(id))) out[pair] = Math.trunc(n);
+  }
+  return out;
+}
+
 function normalize(s) {
   const base = freshState();
   const games = Array.isArray(s.games) ? s.games.map(normalizeGame).filter(Boolean) : base.games;
@@ -89,6 +98,7 @@ function normalize(s) {
     players,
     turns: normalizeTurns(s, playerIds),
     lastUpIds: Array.isArray(s.lastUpIds) ? s.lastUpIds.filter((id) => playerIds.has(id)) : [],
+    met: normalizeMet(s.met, playerIds),
     settings: normalizeSettings(s.settings),
   };
 }
@@ -165,6 +175,7 @@ export function newNight() {
     s.playedIds = [];
     s.turns = {};
     s.lastUpIds = [];
+    s.met = {};
   });
 }
 
@@ -206,6 +217,7 @@ export function importData(data) {
       s.players = next.players;
       s.turns = {};
       s.lastUpIds = [];
+      s.met = {};
     }
   });
 }

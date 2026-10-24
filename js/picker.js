@@ -1,9 +1,9 @@
 // "Who's up?": a smaller wheel that picks which players take on the game.
-// The wheel only shows whoever is due (see turns.js), so everyone plays the same number of times.
-// With teams, it spins once for each team and picks from that team's members, so it's one person vs one person.
+// matchups.js decides the lineup (fresh matchups first, then whoever has played less);
+// the wheel then spins to each person in it. With teams, it spins once per team.
 import { state, teamMode, rosterOf } from './store.js';
-import { whoIsDue } from './turns.js';
-import { Wheel, randomIndex, assignColors, teamColors, shadesOf } from './wheel.js';
+import { chooseLineup, lineupKey } from './matchups.js';
+import { Wheel, assignColors, teamColors, shadesOf } from './wheel.js';
 import * as sound from './audio.js';
 import { burst } from './confetti.js';
 
@@ -63,9 +63,6 @@ function matchup(picked, teams) {
   return [...byTeam.values()].map((names) => names.join(' & ')).join(' vs ');
 }
 
-const nameList = (people) =>
-  people.length <= 2 ? people.map((p) => p.name).join(' and ') : `${people.slice(0, -1).map((p) => p.name).join(', ')} and ${people.at(-1).name}`;
-
 /**
  * root: the #picker overlay.
  * onDone(picks) runs when the host accepts. picks: [{ id, name, color, teamId, teamName }].
@@ -95,9 +92,8 @@ export function createPicker(root, { reducedMotion, onDone, onClose }) {
     const teams = teamMode();
     const groups = groupsToPick();
     const count = picksWanted();
-    const recent = new Set(state.lastUpIds);
-    const skip = new Set(avoid);
     const picked = [];
+    const { picks: lineup, fresh } = chooseLineup(groups, state, avoid);
     const intro = teams
       ? count === 1
         ? 'One player from each team'
@@ -106,18 +102,11 @@ export function createPicker(root, { reducedMotion, onDone, onClose }) {
     note.textContent = intro;
     let first = true;
 
-    for (const group of groups) {
+    for (const [g, group] of groups.entries()) {
       if (group.team) title.textContent = `Who’s up for ${group.team.name}?`;
-      for (let k = 0; k < group.count; k++) {
-        const candidates = group.people.filter((p) => !picked.some((x) => x.id === p.id));
-        const { pool, sittingOut, startedOver } = whoIsDue(candidates, state.turns, recent, skip);
-        if (startedOver) {
-          const everyone = group.team ? `Everyone on ${group.team.name}` : 'Everyone';
-          const rest = sittingOut.length ? ` ${nameList(sittingOut)} ${sittingOut.length === 1 ? 'sits' : 'sit'} this one out.` : '';
-          note.textContent = `${everyone} has played, so they’re back on the wheel.${rest}`;
-        } else if (group.team) note.textContent = intro;
-
-        const person = pool[randomIndex(pool.length)];
+      for (const person of lineup[g]) {
+        // The wheel shows everyone in the group who isn't already picked, and lands on the chosen person.
+        const pool = group.people.filter((p) => !picked.some((x) => x.id === p.id));
         const chipColor = group.team ? group.team.color : person.color;
         const pick = { ...person, color: chipColor, teamName: group.team?.name ?? '' };
         const chip = `<li style="--slice: ${chipColor}">${esc(person.name)}${
@@ -158,7 +147,7 @@ export function createPicker(root, { reducedMotion, onDone, onClose }) {
 
     result = picked;
     title.textContent = matchup(picked, teams);
-    note.textContent = 'You’re up!';
+    note.textContent = fresh ? (picked.length === 2 ? 'First time facing off!' : 'A brand-new matchup!') : 'You’re up!';
     root.classList.add('is-done');
     burst();
     q('[data-act=done]').focus({ preventScroll: true });
@@ -187,8 +176,8 @@ export function createPicker(root, { reducedMotion, onDone, onClose }) {
     const act = e.target.closest('[data-act]')?.dataset.act;
     if (act === 'done') accept();
     else if (act === 'again') {
-      // Steer away from whoever was just shown, if anyone else is as due.
-      if (result) avoid = [...avoid, ...result.map((p) => p.id)];
+      // Pick a different lineup than the one just shown, if there is one.
+      if (result) avoid = [...avoid, lineupKey(result.map((p) => p.id))];
       run();
     }
     else if (act === 'cancel') close();
@@ -198,10 +187,10 @@ export function createPicker(root, { reducedMotion, onDone, onClose }) {
     get isOpen() {
       return !root.hidden;
     },
-    /** avoid: ids to rest if possible, e.g. the people being replaced by "Pick again". */
-    open(avoidIds = []) {
+    /** avoidLineups: lineup keys to skip if possible, e.g. the one "Pick again" is replacing. */
+    open(avoidLineups = []) {
       if (!canPick()) return;
-      avoid = avoidIds;
+      avoid = avoidLineups;
       sound.unlock();
       outside.forEach((el) => (el.inert = true));
       root.hidden = false;

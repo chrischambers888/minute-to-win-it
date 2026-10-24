@@ -9,6 +9,7 @@ import { mountScoreboard, renderAwards, handleAwardClick } from './scoreboard.js
 import { setupEditor } from './editor.js';
 import { createPicker, canPick, maxPicks, picksWanted } from './picker.js';
 import { renderWinner } from './winner.js';
+import { pairsOf, lineupKey } from './matchups.js';
 
 const $ = (sel) => document.querySelector(sel);
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -23,7 +24,7 @@ let spinning = false;
 let gamePlayer = null;
 let videoToken = 0;
 // Who's up for the current game (from the "Who's up?" wheel).
-// `undo` holds the play counts from before these picks, so they can be given back.
+// `undo` holds the play and matchup counts from before these picks, so they can be given back.
 const nobodyUp = () => ({ picks: [], undo: null });
 let up = nobodyUp();
 
@@ -319,12 +320,19 @@ const picker = createPicker($('#picker'), {
   },
 });
 
-/** Being picked uses up a turn. Returns what's needed to give it back. */
+/** Being picked uses up a turn and counts as a matchup. Returns what's needed to give it back. */
 function countTurns(picks) {
-  const undo = { turns: Object.fromEntries(picks.map((p) => [p.id, state.turns[p.id] || 0])), lastUpIds: [...state.lastUpIds] };
+  const ids = picks.map((p) => p.id);
+  const pairs = pairsOf(ids);
+  const undo = {
+    turns: Object.fromEntries(ids.map((id) => [id, state.turns[id] || 0])),
+    met: Object.fromEntries(pairs.map((k) => [k, state.met[k] || 0])),
+    lastUpIds: [...state.lastUpIds],
+  };
   update((s) => {
-    picks.forEach((p) => (s.turns[p.id] = (s.turns[p.id] || 0) + 1));
-    s.lastUpIds = picks.map((p) => p.id);
+    ids.forEach((id) => (s.turns[id] = (s.turns[id] || 0) + 1));
+    pairs.forEach((k) => (s.met[k] = (s.met[k] || 0) + 1));
+    s.lastUpIds = ids;
   });
   return undo;
 }
@@ -334,14 +342,15 @@ function giveTurnsBack() {
   if (!undo) return;
   update((s) => {
     Object.assign(s.turns, undo.turns);
+    Object.assign(s.met, undo.met);
     s.lastUpIds = undo.lastUpIds;
   });
   up = nobodyUp();
 }
 
-/** "Who's up?" or "Pick again". Picking again gives the turns back and tries for different people. */
+/** "Who's up?" or "Pick again". Picking again gives the turns back and picks a different lineup. */
 function pickWhoIsUp() {
-  const replacing = up.picks.map((p) => p.id);
+  const replacing = up.picks.length ? [lineupKey(up.picks.map((p) => p.id))] : [];
   giveTurnsBack();
   picker.open(replacing);
 }

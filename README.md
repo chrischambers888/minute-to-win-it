@@ -24,7 +24,7 @@ Each visitor gets their own copy of the games and scores, saved in their browser
 
 1. **Spin.** Click the wheel or press <kbd>Space</kbd>. Whatever it lands on comes off the wheel until you click **Reset the wheel**.
 2. **Read the game.** The instructions and video (if the game has one) come up. Not feeling it? **Put back and spin again**.
-3. **Who's up?** (optional, needs 2+ players on the scoreboard) Click **Who's up?** or press <kbd>P</kbd> and a smaller wheel picks 1 to 4 players for the game. Turns stay even: the wheel only shows whoever has played the fewest times, and whoever just played sits out if someone else is as due, so nobody plays twice in a row. Being picked uses up a turn. **Pick again** chooses different people, and **Put back and spin again** gives the turns back.
+3. **Who's up?** (optional, needs 2+ players on the scoreboard) Click **Who's up?** or press <kbd>P</kbd> and a smaller wheel picks 1 to 4 players for the game. It mixes up matchups: it goes for people who haven't played in a game together yet, and among those, whoever has played the least. So you get as many different matchups as possible while everyone still plays about the same amount (someone may go twice in a row now and then). Being picked counts right away. **Pick again** picks a different matchup, and **Put back and spin again** gives the turns back.
 4. **Start the clock.** Press <kbd>Enter</kbd> or click the big button. The official timer plays full screen.
 5. **Time's up.** Click a player or team to give them a point (whoever was up is listed first), then go back to the wheel.
 6. **Crown the winner.** At the end of the night, click **Crown the winner** on the scoreboard (it also pops up when every game has been played). A drum roll, then the podium. **Start a new night** sets every score to 0 and puts every game back on the wheel.
@@ -44,7 +44,7 @@ Each visitor gets their own copy of the games and scores, saved in their browser
 On the scoreboard, click **Edit**, then **+ Add players** under a team and add its players one at a time (type a name, press <kbd>Enter</kbd>, type the next). Each player gets their own line, with an × to remove them. Then:
 
 - **Who's up?** spins once for each team and picks one person from it, so it's one player vs one player (for example "Jordan vs Casey"). Use **Per team** to pick 2 or 3 from each team instead.
-- Each team takes turns in order, so everyone on a team plays before anyone on that team goes twice.
+- Matchups rotate: Red's players face different Blue players each time until every pairing has happened.
 - Points go to the team. Time's Up shows who played for each team.
 - A team named after a color ("Blue Team") gets that color.
 
@@ -75,7 +75,7 @@ js/timer.js         the countdown (YouTube video or built-in)
 js/editor.js        the Manage games window
 js/scoreboard.js    scores and points
 js/picker.js        the "Who's up?" player wheel
-js/turns.js         who's due next (keeps turns even)
+js/matchups.js      who plays next (fresh matchups first)
 js/winner.js        the end-of-night podium
 js/store.js         saving to the browser
 js/defaults.js      the original 12 games and default settings
