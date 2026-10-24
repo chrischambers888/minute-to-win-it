@@ -1,0 +1,9 @@
+# macOS
+.DS_Store
+
+# Local tools
+.claude/
+.vercel/
+
+# The original PowerPoint stays on this computer (its file details include other people's names)
+source/

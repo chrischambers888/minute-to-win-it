@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Minute to Win It</title>
+    <meta name="description" content="Spin the wheel, learn the game, and race the official 60-second clock. A Minute to Win It game night on any screen." />
+    <meta name="theme-color" content="#061036" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Minute to Win It" />
+    <meta property="og:description" content="Spin the wheel, learn the game, and race the official 60-second clock." />
+    <meta property="og:image" content="/assets/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@500;600;700&family=Bungee&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body data-screen="wheel">
+    <div class="stage" aria-hidden="true"></div>
+
+    <header class="topbar">
+      <h1 class="logo" aria-label="Minute to Win It">
+        <span class="logo-top">Minute</span>
+        <span class="logo-bottom">to win it</span>
+      </h1>
+      <nav class="topbar-actions" aria-label="Game controls">
+        <button class="chip-btn" id="btn-manage" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" fill="none"/></svg>
+          Manage games
+        </button>
+        <button class="icon-btn" id="btn-sound" type="button" aria-pressed="true" aria-label="Sound effects" title="Sound effects on (M)">
+          <svg class="when-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z" fill="currentColor"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
+          <svg class="when-off" viewBox="0 0 24 24" aria-hidden="true" style="display: none"><path d="M4 9v6h4l5 4V5L8 9z" fill="currentColor"/><path d="M16.5 9.5l5 5M21.5 9.5l-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+        <button class="icon-btn" id="btn-fullscreen" type="button" aria-pressed="false" aria-label="Full screen" title="Full screen (F)">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+        </button>
+      </nav>
+    </header>
+
+    <main>
+      <!-- 1. The wheel -->
+      <section class="screen screen-wheel is-active" id="screen-wheel" aria-label="Spin the wheel">
+        <div class="wheel-area" id="wheel-area">
+          <div class="wheel-wrap">
+            <canvas id="wheel-canvas" aria-hidden="true"></canvas>
+            <svg class="pointer" id="pointer" viewBox="0 0 60 84" aria-hidden="true">
+              <defs>
+                <linearGradient id="pointer-gold" x1="0" x2="1" y1="0" y2="1">
+                  <stop offset="0" stop-color="#fff1b8" />
+                  <stop offset="0.45" stop-color="#ffc736" />
+                  <stop offset="1" stop-color="#c47800" />
+                </linearGradient>
+              </defs>
+              <path d="M30 82 L6 30 A26 26 0 1 1 54 30 Z" fill="url(#pointer-gold)" stroke="#061036" stroke-width="3" stroke-linejoin="round" />
+              <circle cx="30" cy="27" r="11" fill="#e11d2e" stroke="#061036" stroke-width="3" />
+              <circle cx="26.5" cy="23.5" r="3.5" fill="#ffffff" opacity="0.75" />
+            </svg>
+            <button class="hub" id="btn-spin" type="button">Spin</button>
+            <div class="wheel-empty">
+              <p class="wheel-empty-title" id="wheel-empty-title">Every game has been played</p>
+              <button class="btn btn-go btn-huge" id="wheel-empty-reset" type="button">Reset the wheel</button>
+              <button class="btn btn-go btn-huge" id="wheel-empty-manage" type="button" hidden>Add games</button>
+            </div>
+          </div>
+          <p class="hint">Click the wheel or press <kbd>Space</kbd> to spin</p>
+          <p class="landed" id="landed" aria-live="assertive"></p>
+        </div>
+
+        <aside class="rail">
+          <section class="panel scoreboard" id="scoreboard" aria-label="Scoreboard"></section>
+          <section class="panel games-left" id="games-left" aria-label="Games on the wheel"></section>
+        </aside>
+      </section>
+
+      <!-- 2. The game that was picked -->
+      <section class="screen screen-game" id="screen-game" aria-labelledby="game-title" inert>
+        <div class="game-layout" id="game-layout">
+          <h2 class="game-title" id="game-title"></h2>
+          <div class="game-info" id="game-info">
+            <p class="game-instructions" id="game-instructions"></p>
+          </div>
+          <div class="game-media" id="game-media">
+            <div class="game-video" id="game-video" hidden>
+              <div class="video-frame" id="game-video-frame"></div>
+              <p class="video-note" id="video-note" hidden></p>
+            </div>
+            <figure class="game-picture" id="game-picture" hidden><img alt="" /></figure>
+            <div class="game-clock" id="game-clock" aria-hidden="true">
+              <svg viewBox="-50 -50 100 100">
+                <circle class="ring-back" r="49" />
+                <circle class="ring-face" r="36" />
+                <g class="ring-ticks" id="game-clock-ticks"></g>
+              </svg>
+              <span class="game-clock-digits">60</span>
+            </div>
+          </div>
+          <div class="game-actions">
+            <button class="btn btn-go btn-huge" id="btn-start-clock" type="button">Start the clock</button>
+            <button class="btn btn-quiet" id="btn-back-wheel" type="button">Back to wheel</button>
+            <button class="btn btn-quiet" id="btn-respin" type="button">Put back and spin again</button>
+          </div>
+          <p class="game-keys"><kbd>Enter</kbd> starts the clock <span class="sep"></span> <kbd>Esc</kbd> goes back</p>
+        </div>
+      </section>
+
+      <!-- 3. The clock -->
+      <section class="screen screen-timer" id="screen-timer" aria-label="Countdown" inert>
+        <div class="timer-video" id="timer-video"></div>
+        <div class="timer-fallback" id="timer-fallback" hidden></div>
+        <div class="timer-shield" aria-hidden="true"></div>
+
+        <div class="timer-stall" id="timer-stall" hidden>
+          <p>The timer video hasn’t started. Click the video to play it, or use a button below.</p>
+          <div class="timer-stall-actions">
+            <button class="btn btn-go" id="btn-stall-retry" type="button">Play the video</button>
+            <button class="btn btn-quiet" id="btn-stall-builtin" type="button">Use the built-in timer</button>
+          </div>
+        </div>
+
+        <div class="timer-controls">
+          <button class="btn btn-quiet" id="btn-timer-restart" type="button">Restart clock</button>
+          <button class="btn btn-quiet" id="btn-timer-stop" type="button">Stop clock</button>
+        </div>
+
+        <div class="timesup" id="timesup" hidden>
+          <div class="timesup-card" role="dialog" aria-labelledby="timesup-title">
+            <p class="timesup-game" id="timesup-game"></p>
+            <h2 class="timesup-title" id="timesup-title">Time’s up!</h2>
+            <div class="award" id="award"></div>
+            <div class="timesup-actions">
+              <button class="btn btn-go btn-huge" id="btn-timesup-wheel" type="button">Back to wheel</button>
+              <button class="btn btn-quiet" id="btn-timesup-again" type="button">Run the clock again</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Manage games -->
+    <dialog class="manage" id="manage" aria-labelledby="manage-title">
+      <div class="manage-head">
+        <h2 class="manage-title" id="manage-title">Manage games</h2>
+        <div class="tabs" role="tablist" aria-label="Sections">
+          <button role="tab" type="button" data-tab="games" aria-selected="true">Games</button>
+          <button role="tab" type="button" data-tab="timer" aria-selected="false">Timer and sound</button>
+          <button role="tab" type="button" data-tab="backup" aria-selected="false">Backup</button>
+        </div>
+        <button class="btn btn-go btn-small" type="button" data-close>Done</button>
+      </div>
+
+      <div class="manage-body">
+        <section class="games-editor" data-panel="games" role="tabpanel">
+          <div class="games-list-col">
+            <div class="games-list-head">
+              <span id="games-count"></span>
+              <button class="btn btn-small" id="add-game" type="button">Add a game</button>
+            </div>
+            <ol class="games-list" id="games-list"></ol>
+            <p class="list-tip">Drag games to change their order on the wheel.</p>
+          </div>
+          <form class="game-form" id="game-form" autocomplete="off"></form>
+        </section>
+
+        <section class="settings-panel" data-panel="timer" role="tabpanel" hidden>
+          <form id="timer-form" class="settings-form" autocomplete="off">
+            <div class="field">
+              <label for="s-timer-url">Timer video (YouTube link)</label>
+              <input id="s-timer-url" name="timerVideoUrl" inputmode="url" />
+              <div class="video-check" id="timer-video-check"></div>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="s-timer-start">Start the video at (seconds)</label>
+                <input id="s-timer-start" name="timerStart" type="number" min="0" step="1" />
+                <p class="field-help">0 plays the logo and the 3-2-1. Use 6 to start right at 60.</p>
+              </div>
+              <div class="field">
+                <label for="s-timer-up">Show “Time’s up” at (seconds)</label>
+                <input id="s-timer-up" name="timerTimesUpAt" type="number" min="0" step="0.5" />
+                <p class="field-help">The official timer hits 00 at 66 seconds.</p>
+              </div>
+            </div>
+            <label class="check">
+              <input type="checkbox" name="useBuiltInTimer" />
+              <span>Use the built-in timer instead of the video <small>(works without internet)</small></span>
+            </label>
+            <label class="check">
+              <input type="checkbox" name="sound" />
+              <span>Play sound effects <small>(wheel clicks and the win jingle)</small></span>
+            </label>
+            <button class="btn btn-small btn-quiet" type="button" data-act="reset-timer">Restore timer defaults</button>
+          </form>
+        </section>
+
+        <section class="settings-panel" data-panel="backup" role="tabpanel" hidden>
+          <div class="backup">
+            <p class="backup-lead">Your games are saved in this browser. Download a backup to keep a copy or move your games to another computer.</p>
+            <div class="backup-actions">
+              <button class="btn btn-small" type="button" data-act="export">Download backup</button>
+              <label class="btn btn-small btn-quiet file-btn">Load a backup<input type="file" id="import-file" accept=".json,application/json" hidden /></label>
+            </div>
+            <hr />
+            <p>Start over with the original 12 games. Scores are kept.</p>
+            <button class="btn btn-small btn-danger" type="button" data-act="restore">Restore original games</button>
+          </div>
+        </section>
+      </div>
+    </dialog>
+
+    <canvas id="confetti" aria-hidden="true"></canvas>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script type="module" src="js/main.js"></script>
+  </body>
+</html>
