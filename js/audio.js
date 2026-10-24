@@ -96,7 +96,8 @@ export function buzzer() {
 // ---- Noise-based drums for the winner reveal ----
 let noiseBuffer = null;
 
-function noiseHit({ at = 0, dur = 0.08, vol = 0.2, freq = 2000, q = 0.8, filter = 'bandpass', offset }) {
+// toFreq sweeps the filter over the hit (a whoosh). attack is how long it takes to get loud.
+function noiseHit({ at = 0, dur = 0.08, vol = 0.2, freq = 2000, toFreq, q = 0.8, filter = 'bandpass', attack = 0.004, offset }) {
   const c = audio();
   if (!c || !enabled) return;
   if (!noiseBuffer) {
@@ -109,11 +110,12 @@ function noiseHit({ at = 0, dur = 0.08, vol = 0.2, freq = 2000, q = 0.8, filter 
   src.buffer = noiseBuffer;
   const f = c.createBiquadFilter();
   f.type = filter;
-  f.frequency.value = freq;
+  f.frequency.setValueAtTime(freq, t);
+  if (toFreq) f.frequency.exponentialRampToValueAtTime(toFreq, t + dur);
   f.Q.value = q;
   const gain = c.createGain();
   gain.gain.setValueAtTime(0.0001, t);
-  gain.gain.exponentialRampToValueAtTime(vol, t + 0.004);
+  gain.gain.exponentialRampToValueAtTime(vol, t + attack);
   gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
   src.connect(f).connect(gain).connect(master);
   src.start(t, offset ?? Math.random() * 0.3);
@@ -142,4 +144,29 @@ export function victory() {
     tone({ type: 'triangle', freq: f, at: 0.7, dur: 1.6, vol: 0.17, attack: 0.02 });
     tone({ type: 'square', freq: f, at: 0.7, dur: 0.5, vol: 0.03, attack: 0.02 });
   });
+}
+
+// ---- Screen games ----
+
+/** A bright bell: someone got it, or the answers are showing. */
+export function ding() {
+  tone({ type: 'sine', freq: 1568, dur: 0.55, vol: 0.24 });
+  tone({ type: 'sine', freq: 2349, dur: 0.4, vol: 0.1 });
+  tone({ type: 'triangle', freq: 784, dur: 0.3, vol: 0.12 });
+}
+
+/** A low "bonk" for a skipped problem. */
+export function miss() {
+  tone({ type: 'square', freq: 220, endFreq: 140, dur: 0.22, vol: 0.12 });
+}
+
+/** A swish when cards turn over. */
+export function whoosh() {
+  noiseHit({ dur: 0.42, vol: 0.28, freq: 500, toFreq: 4200, q: 1.2, attack: 0.12 });
+}
+
+/** The hit at the end of a drum roll: a cymbal and a thump. */
+export function crash() {
+  noiseHit({ dur: 1.1, vol: 0.26, freq: 5200, q: 0.4, filter: 'highpass', offset: 0 });
+  tone({ type: 'sine', freq: 150, endFreq: 55, dur: 0.4, vol: 0.42 });
 }

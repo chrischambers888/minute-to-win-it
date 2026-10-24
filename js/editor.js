@@ -9,6 +9,8 @@ import {
   importData,
 } from './store.js';
 import { parseYouTube, thumbnailUrl } from './youtube.js';
+import { isScreenGame, applyType, tvIcon } from './screen-games-data.js';
+import { typeFieldHtml, settingsHtml, mountScreenSettings } from './screen-games-settings.js';
 
 const esc = (s) =>
   String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -56,6 +58,7 @@ export function setupEditor({ dialog, toast, onClose }) {
           <button class="game-row-btn" data-select="${g.id}" aria-current="${g.id === selectedId}">
             <span class="game-row-name">${esc(g.name)}</span>
             <span class="game-row-meta">
+              ${isScreenGame(g) ? `<span class="meta-icon" title="Screen game">${tvIcon}</span>` : ''}
               ${parseYouTube(g.videoUrl) ? `<span class="meta-icon" title="Has a video">${icons.video}</span>` : ''}
               ${g.image ? `<span class="meta-icon" title="Has a picture">${icons.picture}</span>` : ''}
               ${!g.enabled ? '<span class="badge">Hidden</span>' : played.has(g.id) ? '<span class="badge">Played</span>' : ''}
@@ -167,10 +170,12 @@ export function setupEditor({ dialog, toast, onClose }) {
           ? `<p class="field-note">This game has been played this round, so it’s off the wheel until you reset. <button type="button" class="link-btn" data-act="unplay">Put it back now</button></p>`
           : ''
       }
+      ${typeFieldHtml(g)}
       <div class="field">
         <label for="f-instructions">Instructions</label>
         <textarea id="f-instructions" name="instructions" rows="6">${esc(g.instructions)}</textarea>
       </div>
+      ${settingsHtml(g)}
       <div class="field">
         <label for="f-video">YouTube video link <span class="optional">(optional)</span></label>
         <input id="f-video" name="videoUrl" value="${esc(g.videoUrl)}" placeholder="https://www.youtube.com/watch?v=…" autocomplete="off" inputmode="url">
@@ -215,6 +220,16 @@ export function setupEditor({ dialog, toast, onClose }) {
     const field = e.target;
     if (!field.name || field.type === 'file') return;
     const id = selectedId;
+    if (field.name === 'type') {
+      update((s) => {
+        const g = s.games.find((x) => x.id === id);
+        if (g) applyType(g, field.value);
+      });
+      renderList();
+      renderForm();
+      flashSaved();
+      return;
+    }
     if (field.name === 'videoUrl') renderVideoCheck(field.value);
     clearTimeout(saveTimer);
     saveTimer = setTimeout(() => {
@@ -283,6 +298,8 @@ export function setupEditor({ dialog, toast, onClose }) {
   });
 
   formEl.addEventListener('submit', (e) => e.preventDefault());
+
+  mountScreenSettings(formEl, { getId: () => selectedId, saved: () => flashSaved(), toast, shrinkImage });
 
   function flashSaved() {
     const note = formEl.querySelector('.saved-note');

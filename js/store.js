@@ -1,5 +1,6 @@
 // App state, saved in this browser's localStorage.
 import { DEFAULT_GAMES, DEFAULT_SETTINGS } from './defaults.js';
+import { screenFields } from './screen-games-data.js';
 
 const KEY = 'minute-to-win-it:v1';
 const listeners = new Set();
@@ -34,6 +35,7 @@ function normalizeGame(g) {
     videoUrl: String(g.videoUrl ?? ''),
     image: typeof g.image === 'string' ? g.image : '',
     enabled: g.enabled !== false,
+    ...screenFields(g), // type ('normal' unless it's a screen game) and screen-game settings
   };
 }
 

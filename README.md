@@ -25,8 +25,8 @@ Each visitor gets their own copy of the games and scores, saved in their browser
 1. **Spin.** Click the wheel or press <kbd>Space</kbd>. Whatever it lands on comes off the wheel until you click **Reset the wheel**.
 2. **Read the game.** The instructions and video (if the game has one) come up. Not feeling it? **Put back and spin again**.
 3. **Who's up?** (optional, needs 2+ players on the scoreboard) Click **Who's up?** or press <kbd>P</kbd> and a smaller wheel picks 1 to 4 players for the game. It mixes up matchups: it goes for people who haven't played in a game together yet, and among those, whoever has played the least. So you get as many different matchups as possible while everyone still plays about the same amount (someone may go twice in a row now and then). Being picked counts right away. **Pick again** picks a different matchup, and **Put back and spin again** gives the turns back.
-4. **Start the clock.** Press <kbd>Enter</kbd> or click the big button. The official timer plays full screen.
-5. **Time's up.** Click a player or team to give them a point (whoever was up is listed first), then go back to the wheel.
+4. **Start the clock.** Press <kbd>Enter</kbd> or click the big button. The official timer plays full screen. (In a [screen game](#screen-games) the game fills the screen when the 60 starts, and the clock moves to the corner.)
+5. **Time's up.** Click a player or team to give them a point (whoever was up is listed first), then go back to the wheel. In a screen game, press **Reveal** first to show the answers.
 6. **Crown the winner.** At the end of the night, click **Crown the winner** on the scoreboard (it also pops up when every game has been played). A drum roll, then the podium. **Start a new night** sets every score to 0 and puts every game back on the wheel.
 
 | Key | What it does |
@@ -38,6 +38,25 @@ Each visitor gets their own copy of the games and scores, saved in their browser
 | <kbd>R</kbd> | Restart the clock |
 | <kbd>F</kbd> | Full screen |
 | <kbd>M</kbd> | Sound effects on/off |
+| <kbd>1</kbd>–<kbd>9</kbd>, <kbd>S</kbd>, <kbd>Backspace</kbd> | Math Wizz "Shout it out": who got it, skip, undo |
+
+## Screen games
+
+Three of the starting games play on the TV, so there's nothing to print or write up. The TV shows the game when the clock's 60 starts (the clock moves to the corner) and keeps the answers. At **Time's up**, press **Reveal**, then give points.
+
+- **Math Wizz.** Pick a level on the game screen: **Easy** (single-digit + and −), **Medium** (two-digit + and −, times tables) or **Hard** (mixed, like 156 ÷ 12 or 48 + 37 − 19). New problems every round, all with whole-number answers.
+  - **Paper:** 20 numbered problems. Players write their answers on paper. Reveal fills in every answer.
+  - **Shout it out:** one big problem at a time. When someone shouts the right answer, press their number (<kbd>1</kbd>–<kbd>9</kbd>) or click their name. The answer flashes, then the next problem comes up. <kbd>S</kbd> skips a problem, <kbd>Backspace</kbd> undoes. The site keeps count, and **See the results** shows who got the most. If you used **Who's up?**, only those players get buttons.
+- **Pricing $.** Five products, A to E, prices hidden. Players write the letters from cheapest to most expensive. Reveal flips the cards one at a time, cheapest first, with a drum roll.
+- **Memory Flash.** 12 things show for 15 seconds, then turn over. Players write down as many as they remember. Reveal turns them back over.
+
+In **Manage games**, **Game type** makes a game a normal game or one of these, and each screen game has its own settings:
+
+- Math Wizz: which operations (+ − × ÷), how many problems on the Paper sheet, and whether answers can be negative.
+- Pricing $: add your own products (name, price, and a picture or emoji) and turn starter products off. The 42 starter products have rough, rounded US prices.
+- Memory Flash: how many things to show, and for how many seconds.
+
+Games saved before the screen games existed (and older backups) stay exactly as they were, as normal games. To get the screen games, use **Restore original games**, or open your Math Wizz or Pricing $ and change its **Game type**.
 
 ## Playing in teams
 
@@ -52,7 +71,7 @@ Don't add any players to a team to play as individuals.
 
 ## Editing games
 
-Click **Manage games** (top right). You can add, edit, delete and reorder games, paste YouTube links, add pictures, and hide a game from the wheel without deleting it. Changes save automatically.
+Click **Manage games** (top right). You can add, edit, delete and reorder games, paste YouTube links, add pictures, hide a game from the wheel without deleting it, and choose its [game type](#screen-games). Changes save automatically.
 
 Your games, scores and settings are saved **in the browser** (Brave, at `localhost:8060`). To move them to another computer or browser, use **Manage games → Backup → Download backup**, then **Load a backup** on the other side.
 
@@ -69,7 +88,11 @@ Your games, scores and settings are saved **in the browser** (Brave, at `localho
 ```
 index.html          the page
 css/styles.css      all the styling
+css/screen-games.css  styling for the screen games
 js/main.js          screen flow and keyboard shortcuts
+js/screen-games.js  the screen games on the timer screen (Math Wizz, Pricing $, Memory Flash)
+js/screen-games-data.js      their settings, starter products and memory items
+js/screen-games-settings.js  their settings in Manage games
 js/wheel.js         the spinning wheel
 js/timer.js         the countdown (YouTube video or built-in)
 js/editor.js        the Manage games window

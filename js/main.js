@@ -10,6 +10,7 @@ import { setupEditor } from './editor.js';
 import { createPicker, canPick, maxPicks, picksWanted } from './picker.js';
 import { renderWinner } from './winner.js';
 import { pairsOf, lineupKey } from './matchups.js';
+import { createScreenGames } from './screen-games.js';
 
 const $ = (sel) => document.querySelector(sel);
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -168,6 +169,7 @@ function fillGameDetails(game) {
   $('#game-clock').hidden = !!yt || !!game.image;
   $('#game-layout').classList.toggle('has-video', !!yt);
   $('#game-video').hidden = !yt;
+  screenGames.renderSetup(game);
 }
 
 // Ticks around the "60" clock on the game screen.
@@ -236,6 +238,7 @@ function destroyGameVideo() {
 
 function backToWheel() {
   timer.stop();
+  screenGames.stop();
   destroyGameVideo();
   wheel.clearCelebration();
   document.body.style.removeProperty('--glow');
@@ -361,6 +364,16 @@ const timer = new TimerController($('#screen-timer'), {
   onNotice: toast,
 });
 
+// Math Wizz, Pricing $ and Memory Flash show their content on the timer screen (js/screen-games.js).
+const screenGames = createScreenGames({
+  root: $('#screen-timer'),
+  timer,
+  setupHost: $('#game-info'),
+  onBack: backToWheel,
+  onAgain: restartClock,
+  reducedMotion,
+});
+
 function startClock() {
   if (!currentGame) return;
   sound.unlock();
@@ -371,12 +384,14 @@ function startClock() {
   }
   $('#timesup').hidden = true;
   showScreen('timer');
+  screenGames.start(currentGame, up.picks);
   timer.start(state.settings);
   flashTimerControls();
 }
 
 function stopClock() {
   timer.stop();
+  screenGames.stop();
   $('#timesup').hidden = true;
   showScreen('game');
   requestAnimationFrame(() => $('#btn-start-clock').focus({ preventScroll: true }));
@@ -384,6 +399,7 @@ function stopClock() {
 
 function restartClock() {
   $('#timesup').hidden = true;
+  screenGames.start(currentGame, up.picks);
   timer.start(state.settings);
   flashTimerControls();
 }
@@ -392,7 +408,8 @@ function showTimesUp() {
   renderAwards($('#award'), up.picks);
   $('#timesup').hidden = false;
   $('#timesup-game').textContent = currentGame ? currentGame.name : '';
-  requestAnimationFrame(() => $('#btn-timesup-wheel').focus({ preventScroll: true }));
+  const focus = screenGames.timesUp(up.picks) || $('#btn-timesup-wheel'); // screen games start with "Reveal"
+  requestAnimationFrame(() => focus.focus({ preventScroll: true }));
 }
 
 let controlsTimer = 0;
@@ -533,6 +550,7 @@ document.addEventListener('keydown', (e) => {
   } else if (screen === 'winner') {
     if (key === 'Escape') leaveWinner();
   } else if (screen === 'timer') {
+    if (screenGames.handleKey(e)) return e.preventDefault(); // Shout it out: 1–9, S, Backspace
     const timesUp = !$('#timesup').hidden;
     if (key === 'Escape') timesUp ? backToWheel() : stopClock();
     else if (key === 'r' || key === 'R') restartClock();

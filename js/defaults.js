@@ -1,6 +1,9 @@
 // The games and settings the site starts with.
 // These came from the original "Minute To Win It Wheel" PowerPoint.
 // Once you edit games in the site, your version is saved in the browser instead.
+// Games are normal games unless they have a `type`: 'math', 'pricing' and 'memory' are the built-in screen games.
+// Their names, instructions and lists live in js/screen-games-data.js.
+import { TYPES } from './screen-games-data.js';
 
 export const DEFAULT_SETTINGS = {
   // The official countdown video. It runs: logo (0–3s), 3-2-1 (3–6s), 60 → 00 (6–66s), then holds on 00.
@@ -43,12 +46,13 @@ export const DEFAULT_GAMES = [
   },
   {
     id: 'math-wizz',
-    name: 'Math Wizz',
-    instructions:
-      'Players will have to answer as many math questions as they can in 60 seconds. Player with the most correct answers wins.',
+    type: 'math',
+    name: TYPES.math.name,
+    instructions: TYPES.math.instructions,
     videoUrl: '',
     image: '',
     enabled: true,
+    math: { level: 'easy', mode: 'paper', ops: ['add', 'sub', 'mul', 'div'], problems: 20, negatives: false },
   },
   {
     id: 'nerf-llama',
@@ -70,12 +74,13 @@ export const DEFAULT_GAMES = [
   },
   {
     id: 'pricing',
-    name: 'Pricing $',
-    instructions:
-      'Players will have to order the pictures of items from least to most expensive in 60 seconds. Player with the most correct answers wins.',
+    type: 'pricing',
+    name: TYPES.pricing.name,
+    instructions: TYPES.pricing.instructions,
     videoUrl: '',
     image: '',
     enabled: true,
+    pricing: { items: [], off: [] }, // your own products, and starter products that are turned off
   },
   {
     id: 'stack-attack',
@@ -96,13 +101,14 @@ export const DEFAULT_GAMES = [
     enabled: true,
   },
   {
-    id: 'cereal-puzzle',
-    name: 'Cereal Puzzle',
-    instructions:
-      'Players will have to complete the puzzle within 60 seconds. First player to complete the puzzle wins.',
+    id: 'memory-flash',
+    type: 'memory',
+    name: TYPES.memory.name,
+    instructions: TYPES.memory.instructions,
     videoUrl: '',
     image: '',
     enabled: true,
+    memory: { count: 12, seconds: 15 },
   },
   {
     id: 'worm-dive',

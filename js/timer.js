@@ -149,6 +149,20 @@ export class TimerController {
     this.startBuiltIn();
   }
 
+  /**
+   * Seconds since the 60-second countdown began: negative during the logo and 3-2-1, null while it's loading or stopped.
+   * Screen games use this to show their content right when the 60 starts.
+   */
+  clockTime() {
+    if (!this.running) return null;
+    if (this.mode === 'builtin') return (performance.now() - this.builtInStart) / 1000 - 3;
+    if (this.mode !== 'video') return null;
+    const t = this.player?.getCurrentTime?.();
+    if (typeof t !== 'number') return null;
+    const { timerStart, timerTimesUpAt } = this.settings;
+    return t - Math.max(timerStart || 0, timerTimesUpAt - 60);
+  }
+
   fireTimesUp() {
     if (this.timesUpFired) return;
     this.timesUpFired = true;
@@ -198,6 +212,7 @@ export class TimerController {
     this.root.classList.remove('is-red');
     this.tickEls.forEach((el) => el.classList.remove('is-spent'));
     const t0 = performance.now();
+    this.builtInStart = t0;
     let last = null;
 
     const frame = (now) => {
