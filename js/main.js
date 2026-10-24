@@ -11,6 +11,7 @@ import { createPicker, canPick, maxPicks, picksWanted } from './picker.js';
 import { renderWinner } from './winner.js';
 import { pairsOf, lineupKey } from './matchups.js';
 import { createScreenGames } from './screen-games.js';
+import { renderNeeds } from './supplies.js';
 
 const $ = (sel) => document.querySelector(sel);
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -155,6 +156,7 @@ function fillGameDetails(game) {
   $('#game-title').textContent = game.name;
   const instructions = $('#game-instructions');
   instructions.textContent = game.instructions || 'No instructions yet. Add them in Manage games.';
+  renderNeeds($('#game-needs'), game);
   instructions.classList.toggle('is-missing', !game.instructions);
   const yt = parseYouTube(game.videoUrl);
   const pic = $('#game-picture');

@@ -23,7 +23,7 @@ Each visitor gets their own copy of the games and scores, saved in their browser
 ## Playing
 
 1. **Spin.** Click the wheel or press <kbd>Space</kbd>. Whatever it lands on comes off the wheel until you click **Reset the wheel**.
-2. **Read the game.** The instructions and video (if the game has one) come up. Not feeling it? **Put back and spin again**.
+2. **Read the game.** The instructions, what [you'll need](#supplies-and-the-shopping-list), and the video (if the game has one) come up. Not feeling it? **Put back and spin again**.
 3. **Who's up?** (optional, needs 2+ players on the scoreboard) Click **Who's up?** or press <kbd>P</kbd> and a smaller wheel picks 1 to 4 players for the game. It mixes up matchups: it goes for people who haven't played in a game together yet, and among those, whoever has played the least. So you get as many different matchups as possible while everyone still plays about the same amount (someone may go twice in a row now and then). Being picked counts right away. **Pick again** picks a different matchup, and **Put back and spin again** gives the turns back.
 4. **Start the clock.** Press <kbd>Enter</kbd> or click the big button. The official timer plays full screen. (In a [screen game](#screen-games) the game fills the screen when the 60 starts, and the clock moves to the corner.)
 5. **Time's up.** Click a player or team to give them a point (whoever was up is listed first), then go back to the wheel. In a screen game, press **Reveal** first to show the answers.
@@ -69,9 +69,19 @@ On the scoreboard, click **Edit**, then **+ Add players** under a team and add i
 
 Don't add any players to a team to play as individuals.
 
+## Supplies and the shopping list
+
+Each game can have a **You'll need** list, like "3 balloons" or "36 plastic cups". It shows under the instructions on the game screen, so everyone can see what to set up.
+
+- **Adding supplies:** in **Manage games**, pick a game and type in **Add an item** under **You'll need**. Press <kbd>Enter</kbd> to add it, then type the next one. Each item gets its own line, with an × to remove it. Pasting a list adds one item per line.
+- **Amounts are for one player.** If two people play at once, get two sets.
+- **Shopping list:** **Manage games → Shopping list** shows the supplies for every game on the wheel in one list, grouped by game (hidden games are left out). **Print** prints just the list, with a box to tick off each item.
+
+The 12 starting games come with their supplies filled in. Starting games in older saves and backups get these lists too. Games you added start with an empty list.
+
 ## Editing games
 
-Click **Manage games** (top right). You can add, edit, delete and reorder games, paste YouTube links, add pictures, hide a game from the wheel without deleting it, and choose its [game type](#screen-games). Changes save automatically.
+Click **Manage games** (top right). You can add, edit, delete and reorder games, list what each game [needs](#supplies-and-the-shopping-list), paste YouTube links, add pictures, hide a game from the wheel without deleting it, and choose its [game type](#screen-games). Changes save automatically.
 
 Your games, scores and settings are saved **in the browser** (Brave, at `localhost:8060`). To move them to another computer or browser, use **Manage games → Backup → Download backup**, then **Load a backup** on the other side.
 
@@ -89,6 +99,7 @@ Your games, scores and settings are saved **in the browser** (Brave, at `localho
 index.html          the page
 css/styles.css      all the styling
 css/screen-games.css  styling for the screen games
+css/supplies.css    styling for "You'll need", the shopping list and its print view
 js/main.js          screen flow and keyboard shortcuts
 js/screen-games.js  the screen games on the timer screen (Math Wizz, Pricing $, Memory Flash)
 js/screen-games-data.js      their settings, starter products and memory items
@@ -96,6 +107,7 @@ js/screen-games-settings.js  their settings in Manage games
 js/wheel.js         the spinning wheel
 js/timer.js         the countdown (YouTube video or built-in)
 js/editor.js        the Manage games window
+js/supplies.js      "You'll need" (game screen and editor) and the shopping list
 js/scoreboard.js    scores and points
 js/picker.js        the "Who's up?" player wheel
 js/matchups.js      who plays next (fresh matchups first)

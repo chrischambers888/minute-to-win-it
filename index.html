@@ -23,6 +23,7 @@
     />
     <link rel="stylesheet" href="css/styles.css" />
     <link rel="stylesheet" href="css/screen-games.css" />
+    <link rel="stylesheet" href="css/supplies.css" />
   </head>
   <body data-screen="wheel">
     <div class="stage" aria-hidden="true"></div>
@@ -89,6 +90,7 @@
           <h2 class="game-title" id="game-title"></h2>
           <div class="game-info" id="game-info">
             <p class="game-instructions" id="game-instructions"></p>
+            <div class="game-needs" id="game-needs" hidden></div>
             <div class="game-who" id="game-who" hidden></div>
           </div>
           <div class="game-media" id="game-media">
@@ -199,6 +201,7 @@
         <h2 class="manage-title" id="manage-title">Manage games</h2>
         <div class="tabs" role="tablist" aria-label="Sections">
           <button role="tab" type="button" data-tab="games" aria-selected="true">Games</button>
+          <button role="tab" type="button" data-tab="shopping" aria-selected="false">Shopping list</button>
           <button role="tab" type="button" data-tab="timer" aria-selected="false">Timer and sound</button>
           <button role="tab" type="button" data-tab="backup" aria-selected="false">Backup</button>
         </div>
@@ -216,6 +219,10 @@
             <p class="list-tip">Drag games to change their order on the wheel.</p>
           </div>
           <form class="game-form" id="game-form" autocomplete="off"></form>
+        </section>
+
+        <section class="settings-panel" data-panel="shopping" role="tabpanel" hidden>
+          <div class="shop" id="shopping-list"></div>
         </section>
 
         <section class="settings-panel" data-panel="timer" role="tabpanel" hidden>

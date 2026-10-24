@@ -22,6 +22,7 @@ export const DEFAULT_GAMES = [
     name: 'Defying Gravity',
     instructions:
       'Players will have to keep 3 balloons up in the air for 60 seconds. If a balloon touches the ground, no point.',
+    supplies: ['3 balloons'],
     videoUrl: 'https://www.youtube.com/watch?v=hIP6wxJyKIc',
     image: '',
     enabled: true,
@@ -31,6 +32,7 @@ export const DEFAULT_GAMES = [
     name: 'Ready Spaghetti',
     instructions:
       'Players will have a piece of spaghetti in their mouth and will have to get 6 pieces of penne onto the spaghetti in 60 seconds. Failure to do so will result in no point.',
+    supplies: ['Uncooked spaghetti', '6 pieces of uncooked penne'],
     videoUrl: '',
     image: '',
     enabled: true,
@@ -40,6 +42,7 @@ export const DEFAULT_GAMES = [
     name: 'Suck It Up',
     instructions:
       'Players will have to move 5 goldfish from one plate to another by sucking them up with a straw in 60 seconds. Failure to do so will result in no point.',
+    supplies: ['5 Goldfish crackers', '2 plates', '1 straw'],
     videoUrl: '',
     image: '',
     enabled: true,
@@ -49,6 +52,7 @@ export const DEFAULT_GAMES = [
     type: 'math',
     name: TYPES.math.name,
     instructions: TYPES.math.instructions,
+    supplies: ['Paper and a pen'],
     videoUrl: '',
     image: '',
     enabled: true,
@@ -59,6 +63,7 @@ export const DEFAULT_GAMES = [
     name: 'Nerf Llama',
     instructions:
       'Players will try to knock down as many cans / cups as they can with Nerf bullets. Player with the greatest number of cups knocked down wins.',
+    supplies: ['Nerf blaster', 'Nerf darts', 'Empty cans or plastic cups'],
     videoUrl: '',
     image: 'assets/images/nerf-llama.jpg',
     enabled: true,
@@ -68,6 +73,7 @@ export const DEFAULT_GAMES = [
     name: 'Pong5',
     instructions:
       'Players will have to bounce 5 pong balls into one Solo cup in 60 seconds. Failure to do so will result in no point.',
+    supplies: ['5 ping pong balls', '1 Solo cup'],
     videoUrl: 'https://www.youtube.com/watch?v=YsrTROq6Xz8',
     image: '',
     enabled: true,
@@ -77,6 +83,7 @@ export const DEFAULT_GAMES = [
     type: 'pricing',
     name: TYPES.pricing.name,
     instructions: TYPES.pricing.instructions,
+    supplies: ['Paper and a pen'],
     videoUrl: '',
     image: '',
     enabled: true,
@@ -87,6 +94,7 @@ export const DEFAULT_GAMES = [
     name: 'Stack Attack',
     instructions:
       'Players will need to stack 36 cups (8 cup base) in a pyramid and then take them down into one stack in 60 seconds. Failure to do so will result in no point.',
+    supplies: ['36 plastic cups'],
     videoUrl: 'https://www.youtube.com/watch?v=oLtSQ3jAc04',
     image: '',
     enabled: true,
@@ -96,6 +104,7 @@ export const DEFAULT_GAMES = [
     name: 'Penny For Your Thoughts',
     instructions:
       'Players will have to use one hand to stack as many pennies as they can in 60 seconds. Player with the greatest number of pennies stacked wins.',
+    supplies: ['50 pennies'],
     videoUrl: 'https://www.youtube.com/watch?v=3_Ao13XrTpc',
     image: '',
     enabled: true,
@@ -105,6 +114,7 @@ export const DEFAULT_GAMES = [
     type: 'memory',
     name: TYPES.memory.name,
     instructions: TYPES.memory.instructions,
+    supplies: ['Paper and a pen'],
     videoUrl: '',
     image: '',
     enabled: true,
@@ -115,6 +125,7 @@ export const DEFAULT_GAMES = [
     name: 'Worm Dive',
     instructions:
       'Players will have to dive their face into a bowl of whipped cream to search for 5 gummy worms and eat them or put them onto a plate in 60 seconds. Failure to do so will result in no point.',
+    supplies: ['1 bowl', 'Whipped cream to fill the bowl', '5 gummy worms', '1 plate', 'Paper towels'],
     videoUrl: '',
     image: '',
     enabled: true,
@@ -124,6 +135,7 @@ export const DEFAULT_GAMES = [
     name: 'Face The Cookie',
     instructions:
       'Players will have to get two cookies from their foreheads to their mouths without using their hands within 60 seconds. Failure to do so will result in no point.',
+    supplies: ['2 cookies'],
     videoUrl: 'https://www.youtube.com/watch?v=oLvLVL_rfD4',
     image: '',
     enabled: true,

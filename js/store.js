@@ -32,11 +32,21 @@ function normalizeGame(g) {
     id: typeof g.id === 'string' && g.id ? g.id : uid(),
     name: name || 'Untitled game',
     instructions: String(g.instructions ?? ''),
+    supplies: normalizeSupplies(g),
     videoUrl: String(g.videoUrl ?? ''),
     image: typeof g.image === 'string' ? g.image : '',
     enabled: g.enabled !== false,
     ...screenFields(g), // type ('normal' unless it's a screen game) and screen-game settings
   };
+}
+
+// "You'll need": short lines like "3 balloons". Games saved before supplies existed get the starting game's list.
+function normalizeSupplies(g) {
+  const list = Array.isArray(g.supplies) ? g.supplies : (DEFAULT_GAMES.find((d) => d.id === g.id)?.supplies ?? []);
+  return list
+    .filter((s) => typeof s === 'string' || typeof s === 'number')
+    .map((s) => String(s).trim())
+    .filter(Boolean);
 }
 
 function normalizeMember(m) {

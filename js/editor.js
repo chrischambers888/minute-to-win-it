@@ -1,4 +1,4 @@
-// "Manage games" window: edit games, timer settings, and backups.
+// "Manage games" window: edit games, the shopping list, timer settings, and backups.
 import {
   state,
   update,
@@ -11,6 +11,7 @@ import {
 import { parseYouTube, thumbnailUrl } from './youtube.js';
 import { isScreenGame, applyType, tvIcon } from './screen-games-data.js';
 import { typeFieldHtml, settingsHtml, mountScreenSettings } from './screen-games-settings.js';
+import { suppliesFieldHtml, mountSuppliesEditor, mountShoppingList } from './supplies.js';
 
 const esc = (s) =>
   String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -42,6 +43,7 @@ export function setupEditor({ dialog, toast, onClose }) {
     dialog.querySelectorAll('[data-tab]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === name)));
     dialog.querySelectorAll('[data-panel]').forEach((p) => (p.hidden = p.dataset.panel !== name));
     if (name === 'timer') renderTimerForm();
+    if (name === 'shopping') shopping.render();
   }
 
   dialog.querySelector('[data-close]').addEventListener('click', () => dialog.close());
@@ -175,6 +177,7 @@ export function setupEditor({ dialog, toast, onClose }) {
         <label for="f-instructions">Instructions</label>
         <textarea id="f-instructions" name="instructions" rows="6">${esc(g.instructions)}</textarea>
       </div>
+      ${suppliesFieldHtml(g)}
       ${settingsHtml(g)}
       <div class="field">
         <label for="f-video">YouTube video link <span class="optional">(optional)</span></label>
@@ -300,6 +303,19 @@ export function setupEditor({ dialog, toast, onClose }) {
   formEl.addEventListener('submit', (e) => e.preventDefault());
 
   mountScreenSettings(formEl, { getId: () => selectedId, saved: () => flashSaved(), toast, shrinkImage });
+  mountSuppliesEditor(formEl, { getId: () => selectedId, saved: () => flashSaved() });
+
+  // ---- Shopping list ----
+  const shopping = mountShoppingList(dialog.querySelector('#shopping-list'), {
+    onEdit: (id) => {
+      selectedId = id;
+      setTab('games');
+      renderList();
+      renderForm();
+      listEl.querySelector(`[data-id="${id}"]`)?.scrollIntoView({ block: 'nearest' });
+      formEl.querySelector('.supply-new')?.focus();
+    },
+  });
 
   function flashSaved() {
     const note = formEl.querySelector('.saved-note');
