@@ -67,6 +67,7 @@
             <button class="hub" id="btn-spin" type="button">Spin</button>
             <div class="wheel-empty">
               <p class="wheel-empty-title" id="wheel-empty-title">Every game has been played</p>
+              <button class="btn btn-go btn-huge" id="wheel-empty-crown" type="button" hidden>Crown the winner</button>
               <button class="btn btn-go btn-huge" id="wheel-empty-reset" type="button">Reset the wheel</button>
               <button class="btn btn-go btn-huge" id="wheel-empty-manage" type="button" hidden>Add games</button>
             </div>
@@ -87,6 +88,7 @@
           <h2 class="game-title" id="game-title"></h2>
           <div class="game-info" id="game-info">
             <p class="game-instructions" id="game-instructions"></p>
+            <div class="game-who" id="game-who" hidden></div>
           </div>
           <div class="game-media" id="game-media">
             <div class="game-video" id="game-video" hidden>
@@ -108,7 +110,7 @@
             <button class="btn btn-quiet" id="btn-back-wheel" type="button">Back to wheel</button>
             <button class="btn btn-quiet" id="btn-respin" type="button">Put back and spin again</button>
           </div>
-          <p class="game-keys"><kbd>Enter</kbd> starts the clock <span class="sep"></span> <kbd>Esc</kbd> goes back</p>
+          <p class="game-keys"><kbd>Enter</kbd> starts the clock <span class="sep"></span> <kbd>Esc</kbd> goes back<span id="keys-who" hidden><span class="sep"></span> <kbd>P</kbd> picks who’s up</span></p>
         </div>
       </section>
 
@@ -143,7 +145,52 @@
           </div>
         </div>
       </section>
+
+      <!-- 4. The winner -->
+      <section class="screen screen-winner" id="screen-winner" aria-labelledby="winner-title" inert>
+        <div class="winner-layout">
+          <p class="winner-kicker" id="winner-kicker">And the winner is…</p>
+          <h2 class="winner-title" id="winner-title"></h2>
+          <ol class="podium" id="podium" aria-label="Podium"></ol>
+          <div class="winner-rest" id="winner-rest"></div>
+          <div class="winner-actions">
+            <button class="btn btn-go btn-huge" id="btn-winner-wheel" type="button">Back to the wheel</button>
+            <button class="btn btn-quiet" id="btn-winner-new" type="button">Start a new night</button>
+          </div>
+        </div>
+      </section>
     </main>
+
+    <!-- Who's up? (picks players for a game) -->
+    <div class="picker" id="picker" role="dialog" aria-modal="true" aria-labelledby="picker-title" hidden>
+      <div class="picker-card">
+        <h2 class="picker-title" id="picker-title">Who’s up?</h2>
+        <div class="picker-wheel">
+          <canvas aria-hidden="true"></canvas>
+          <svg class="pointer" viewBox="0 0 60 84" aria-hidden="true">
+            <defs>
+              <linearGradient id="picker-pointer-gold" x1="0" x2="1" y1="0" y2="1">
+                <stop offset="0" stop-color="#fff1b8" />
+                <stop offset="0.45" stop-color="#ffc736" />
+                <stop offset="1" stop-color="#c47800" />
+              </linearGradient>
+            </defs>
+            <path d="M30 82 L6 30 A26 26 0 1 1 54 30 Z" fill="url(#picker-pointer-gold)" stroke="#061036" stroke-width="3" stroke-linejoin="round" />
+            <circle cx="30" cy="27" r="11" fill="#e11d2e" stroke="#061036" stroke-width="3" />
+            <circle cx="26.5" cy="23.5" r="3.5" fill="#ffffff" opacity="0.75" />
+          </svg>
+          <div class="hub picker-hub" aria-hidden="true">?</div>
+          <p class="landed picker-landed" aria-live="assertive"></p>
+        </div>
+        <p class="picker-note" id="picker-note"></p>
+        <ul class="picker-chosen" id="picker-chosen" aria-label="Picked so far"></ul>
+        <div class="picker-actions">
+          <button class="btn btn-go btn-huge" type="button" data-act="done">Let’s go</button>
+          <button class="btn btn-quiet" type="button" data-act="again">Pick again</button>
+          <button class="btn btn-quiet" type="button" data-act="cancel">Cancel</button>
+        </div>
+      </div>
+    </div>
 
     <!-- Manage games -->
     <dialog class="manage" id="manage" aria-labelledby="manage-title">

@@ -1,34 +1,38 @@
 // Scoreboard on the wheel screen, plus the "give a point" buttons after the clock runs out.
-import { state, update, subscribe, newPlayer } from './store.js';
+import { state, update, subscribe, newPlayer, leaders, teamMode, parseMembers } from './store.js';
+import { teamColors } from './wheel.js';
 
 const esc = (s) =>
   String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
 const crown = `<svg class="crown" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18h18l-1.5-10-5 4L12 5l-2.5 7-5-4z" fill="currentColor"/></svg>`;
 
-function leaderIds() {
-  const top = Math.max(0, ...state.players.map((p) => p.score));
-  if (top <= 0) return new Set();
-  return new Set(state.players.filter((p) => p.score === top).map((p) => p.id));
-}
-
-export function mountScoreboard(el) {
+/** onCrown: called when the host clicks "Crown the winner". */
+export function mountScoreboard(el, { onCrown } = {}) {
   let editing = false;
 
   function render() {
-    const leaders = leaderIds();
+    const top = new Set(leaders().map((p) => p.id));
     const players = state.players;
+    const teams = teamMode();
+    // With teams, each team gets the color its players wear on the "Who's up?" chips.
+    const colors = teamColors(players.map((p) => p.name));
     const rows = players
-      .map((p) =>
+      .map((p, i) =>
         editing
           ? `<li class="player is-editing">
               <input class="player-name-input" data-id="${p.id}" value="${esc(p.name)}" aria-label="Name for ${esc(p.name)}" maxlength="24">
               <button class="icon-btn small danger" data-act="remove" data-id="${p.id}" aria-label="Remove ${esc(p.name)}" title="Remove">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
               </button>
+              <input class="members-input" data-id="${p.id}" value="${esc(p.members.map((m) => m.name).join(', '))}"
+                placeholder="Team members (optional): Sam, Alex" aria-label="Team members for ${esc(p.name)}, separated by commas" maxlength="400">
             </li>`
-          : `<li class="player ${leaders.has(p.id) ? 'is-leader' : ''}">
-              <span class="player-name">${leaders.has(p.id) ? crown : ''}${esc(p.name)}</span>
+          : `<li class="player ${top.has(p.id) ? 'is-leader' : ''} ${teams ? 'has-team' : ''}" style="--team: ${colors[i]}">
+              <span class="player-label">
+                <span class="player-name">${top.has(p.id) ? crown : ''}${esc(p.name)}</span>
+                ${p.members.length ? `<span class="player-members">${p.members.map((m) => esc(m.name)).join(' · ')}</span>` : ''}
+              </span>
               <button class="score-btn" data-act="minus" data-id="${p.id}" aria-label="Take a point from ${esc(p.name)}">−</button>
               <span class="player-score" aria-label="${esc(p.name)} has ${p.score} points">${p.score}</span>
               <button class="score-btn plus" data-act="plus" data-id="${p.id}" aria-label="Give ${esc(p.name)} a point">+</button>
@@ -43,6 +47,7 @@ export function mountScoreboard(el) {
         ${empty ? '' : `<button class="link-btn" data-act="toggle-edit">${editing ? 'Done' : 'Edit'}</button>`}
       </div>
       ${empty ? '<p class="panel-empty">Add players or teams to keep score.</p>' : `<ol class="players">${rows}</ol>`}
+      ${editing ? '<p class="score-tip">Playing in teams? List each team’s members. <b>Who’s up?</b> then picks one person from every team.</p>' : ''}
       ${
         editing || empty
           ? `<form class="add-player" autocomplete="off">
@@ -50,7 +55,9 @@ export function mountScoreboard(el) {
               <button class="btn btn-small" type="submit">Add</button>
             </form>
             ${empty ? '' : '<button class="link-btn subtle" data-act="reset-scores">Set all scores to 0</button>'}`
-          : ''
+          : top.size
+            ? `<button class="btn btn-quiet crown-btn" type="button" data-act="crown">${crown}Crown the winner</button>`
+            : ''
       }`;
   }
 
@@ -73,7 +80,13 @@ export function mountScoreboard(el) {
       if (!state.players.length) editing = false;
       render();
     } else if (act === 'reset-scores') {
-      if (confirm('Set every score back to 0?')) update((s) => s.players.forEach((p) => (p.score = 0)));
+      if (confirm('Set every score back to 0?'))
+        update((s) => {
+          s.players.forEach((p) => (p.score = 0));
+          s.turnTakenIds = [];
+        });
+    } else if (act === 'crown') {
+      onCrown?.();
     }
   });
 
@@ -89,13 +102,22 @@ export function mountScoreboard(el) {
   });
 
   el.addEventListener('change', (e) => {
-    const input = e.target.closest('.player-name-input');
+    const input = e.target.closest('.player-name-input, .members-input');
     if (!input) return;
-    const name = input.value.trim();
     update((s) => {
       const p = s.players.find((x) => x.id === input.dataset.id);
-      if (p && name) p.name = name;
+      if (!p) return;
+      if (input.matches('.members-input')) p.members = parseMembers(input.value, p.members);
+      else if (input.value.trim()) p.name = input.value.trim();
     });
+  });
+
+  // Enter saves a name or member list.
+  el.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && e.target.matches('.player-name-input, .members-input')) {
+      e.preventDefault();
+      e.target.blur();
+    }
   });
 
   subscribe(() => {
@@ -107,22 +129,29 @@ export function mountScoreboard(el) {
   render();
 }
 
-/** Buttons shown on the "Time's up" screen to hand out points. */
-export function renderAwards(el) {
+/**
+ * Buttons shown on the "Time's up" screen to hand out points.
+ * picks: who was up ({ id, name, teamId }). Their player or team comes first, and a team shows who played for it.
+ */
+export function renderAwards(el, picks = []) {
   if (!state.players.length) {
     el.innerHTML = '<p class="award-empty">Add players on the scoreboard to keep score.</p>';
     return;
   }
+  const upFor = (p) => picks.filter((x) => x.teamId === p.id);
+  const players = [...state.players].sort((a, b) => (upFor(b).length > 0) - (upFor(a).length > 0));
   el.innerHTML = `
-    <p class="award-label">Who earned a point?</p>
+    <p class="award-label">${teamMode() ? 'Which team earned a point?' : 'Who earned a point?'}</p>
     <div class="award-buttons">
-      ${state.players
-        .map(
-          (p) => `<button class="award-btn" data-id="${p.id}">
-            <span class="award-name">${esc(p.name)}</span>
+      ${players
+        .map((p) => {
+          const up = upFor(p);
+          const playedFor = up.filter((x) => x.id !== p.id).map((x) => esc(x.name));
+          return `<button class="award-btn ${up.length ? 'is-up' : ''}" data-id="${p.id}">
+            <span class="award-name">${esc(p.name)}${playedFor.length ? `<small class="award-who">${playedFor.join(' & ')}</small>` : ''}</span>
             <span class="award-score">${p.score}</span>
-          </button>`,
-        )
+          </button>`;
+        })
         .join('')}
     </div>
     <p class="award-hint">Click again to give more than one point.</p>`;

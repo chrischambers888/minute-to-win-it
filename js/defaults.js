@@ -9,6 +9,8 @@ export const DEFAULT_SETTINGS = {
   timerTimesUpAt: 66, // seconds into the video when "Time's up" should appear
   useBuiltInTimer: false,
   sound: true,
+  playersPerRound: 2, // how many players "Who's up?" picks for each game
+  playersPerTeam: 1, // with teams: how many people "Who's up?" picks from each team
 };
 
 export const DEFAULT_GAMES = [

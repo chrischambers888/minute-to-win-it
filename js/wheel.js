@@ -9,6 +9,13 @@ export const SLICE_COLORS = ['#e11d2e', '#f2750a', '#f5b700', '#1fae55', '#0ea5b
 
 const BULBS = 24;
 
+/** A fair random whole number from 0 to n - 1. */
+export function randomIndex(n) {
+  const buf = new Uint32Array(1);
+  crypto.getRandomValues(buf);
+  return Math.floor((buf[0] / 2 ** 32) * n);
+}
+
 export class Wheel {
   constructor(canvas, { pointer, onTick } = {}) {
     this.canvas = canvas;
@@ -36,13 +43,13 @@ export class Wheel {
     return !!this.anim;
   }
 
-  /** items: [{ id, label }] */
+  /** items: [{ id, label, color? }]. Without colors, slices get the game-show colors in order. */
   setItems(items) {
-    const signature = JSON.stringify(items.map((i) => [i.id, i.label]));
+    const signature = JSON.stringify(items.map((i) => [i.id, i.label, i.color]));
     if (signature === this.signature) return;
     this.signature = signature;
     this.items = items;
-    this.colors = assignColors(items.length);
+    this.colors = items.every((i) => i.color) ? items.map((i) => i.color) : assignColors(items.length);
     this.celebration = null;
     this.buildFace();
     this.render();
@@ -300,6 +307,15 @@ export class Wheel {
     this.render();
   }
 
+  /** Stops a spin early, right where it is. */
+  stop() {
+    const a = this.anim;
+    if (!a) return;
+    this.anim = null;
+    this.rotation = mod(this.rotation, TAU);
+    a.resolve();
+  }
+
   loop() {
     if (this.raf) return;
     const step = (now) => {
@@ -342,7 +358,43 @@ export class Wheel {
   }
 }
 
-function assignColors(n) {
+const NAMED_COLORS = {
+  red: '#e11d2e',
+  orange: '#f2750a',
+  yellow: '#f5b700',
+  gold: '#f5b700',
+  green: '#1fae55',
+  teal: '#0ea5b7',
+  blue: '#1f6bff',
+  purple: '#7b3ff2',
+  pink: '#e2338f',
+};
+
+/** Colors for teams. A team named after a color ("Blue Team") gets that color; the rest get unused colors in order. */
+export function teamColors(names) {
+  const named = names.map((n) => {
+    const word = String(n).toLowerCase().match(/\b(red|orange|yellow|gold|green|teal|blue|purple|pink)\b/);
+    return word ? NAMED_COLORS[word[1]] : null;
+  });
+  const used = new Set(named.filter(Boolean));
+  const free = SLICE_COLORS.filter((c) => !used.has(c));
+  let next = 0;
+  return named.map((c) => c || free[next++ % free.length] || SLICE_COLORS[next % SLICE_COLORS.length]);
+}
+
+/** n shades of one color for a team's wheel. Neighboring slices never match. */
+export function shadesOf(color, n) {
+  const steps = [0, -0.3, 0.22, -0.48, 0.38];
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    let k = i % steps.length;
+    if (n > 1 && i === n - 1 && k === 0) k = 2; // the last slice touches the first
+    out.push(shade(color, steps[k]));
+  }
+  return out;
+}
+
+export function assignColors(n) {
   const k = SLICE_COLORS.length;
   const colors = [];
   for (let i = 0; i < n; i++) {

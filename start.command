@@ -13,7 +13,16 @@ if lsof -nP -iTCP:$PORT -sTCP:LISTEN >/dev/null 2>&1; then
   exit 0
 fi
 
-python3 -m http.server "$PORT" --bind 127.0.0.1 >/dev/null 2>&1 &
+# A plain web server that tells the browser to check for new files every time,
+# so updated game files always show up without a hard refresh.
+python3 - "$PORT" >/dev/null 2>&1 <<'PY' &
+import sys, http.server
+class NoCache(http.server.SimpleHTTPRequestHandler):
+    def end_headers(self):
+        self.send_header('Cache-Control', 'no-cache')
+        super().end_headers()
+http.server.ThreadingHTTPServer(('127.0.0.1', int(sys.argv[1])), NoCache).serve_forever()
+PY
 SERVER_PID=$!
 trap 'kill $SERVER_PID 2>/dev/null' EXIT INT TERM
 sleep 0.8

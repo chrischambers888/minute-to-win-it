@@ -92,3 +92,54 @@ export function buzzer() {
     osc.stop(t + 1.4);
   });
 }
+
+// ---- Noise-based drums for the winner reveal ----
+let noiseBuffer = null;
+
+function noiseHit({ at = 0, dur = 0.08, vol = 0.2, freq = 2000, q = 0.8, filter = 'bandpass', offset }) {
+  const c = audio();
+  if (!c || !enabled) return;
+  if (!noiseBuffer) {
+    noiseBuffer = c.createBuffer(1, c.sampleRate * 2, c.sampleRate);
+    const data = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+  }
+  const t = c.currentTime + at;
+  const src = c.createBufferSource();
+  src.buffer = noiseBuffer;
+  const f = c.createBiquadFilter();
+  f.type = filter;
+  f.frequency.value = freq;
+  f.Q.value = q;
+  const gain = c.createGain();
+  gain.gain.setValueAtTime(0.0001, t);
+  gain.gain.exponentialRampToValueAtTime(vol, t + 0.004);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  src.connect(f).connect(gain).connect(master);
+  src.start(t, offset ?? Math.random() * 0.3);
+  src.stop(t + dur + 0.02);
+}
+
+/** A snare roll that swells for `seconds`. */
+export function drumroll(seconds = 2.4) {
+  for (let t = 0; t < seconds; t += 0.042) {
+    const p = t / seconds;
+    noiseHit({ at: t, dur: 0.06, vol: 0.05 + 0.2 * p * p, freq: 1900 + 600 * p });
+  }
+}
+
+/** Cymbal crash, a low boom and a big fanfare for the winner. */
+export function victory() {
+  noiseHit({ dur: 1.8, vol: 0.32, freq: 5000, q: 0.4, filter: 'highpass', offset: 0 });
+  tone({ type: 'sine', freq: 140, endFreq: 45, dur: 0.6, vol: 0.5 });
+  const run = [392, 523.25, 659.25, 783.99];
+  run.forEach((f, i) => {
+    tone({ type: 'triangle', freq: f, at: 0.05 + i * 0.11, dur: 0.2, vol: 0.3 });
+    tone({ type: 'square', freq: f, at: 0.05 + i * 0.11, dur: 0.1, vol: 0.05 });
+  });
+  tone({ type: 'triangle', freq: 659.25, at: 0.56, dur: 0.16, vol: 0.3 });
+  [523.25, 659.25, 783.99, 1046.5].forEach((f) => {
+    tone({ type: 'triangle', freq: f, at: 0.7, dur: 1.6, vol: 0.17, attack: 0.02 });
+    tone({ type: 'square', freq: f, at: 0.7, dur: 0.5, vol: 0.03, attack: 0.02 });
+  });
+}

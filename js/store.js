@@ -17,6 +17,7 @@ function freshState() {
     games: clone(DEFAULT_GAMES),
     playedIds: [],
     players: [],
+    turnTakenIds: [], // players who've had a turn since everyone was last back on the "Who's up?" wheel
     settings: clone(DEFAULT_SETTINGS),
   };
 }
@@ -34,12 +35,21 @@ function normalizeGame(g) {
   };
 }
 
+function normalizeMember(m) {
+  if (!m || typeof m !== 'object') return null;
+  const name = String(m.name ?? '').trim();
+  if (!name) return null;
+  return { id: typeof m.id === 'string' && m.id ? m.id : uid(), name };
+}
+
+// A scoreboard entry is a player, or a team when it has members.
 function normalizePlayer(p) {
   if (!p || typeof p !== 'object') return null;
   return {
     id: typeof p.id === 'string' && p.id ? p.id : uid(),
     name: String(p.name ?? '').trim() || 'Player',
     score: Number.isFinite(+p.score) ? Math.trunc(+p.score) : 0,
+    members: Array.isArray(p.members) ? p.members.map(normalizeMember).filter(Boolean) : [],
   };
 }
 
@@ -50,6 +60,8 @@ function normalizeSettings(s) {
   out.useBuiltInTimer = !!out.useBuiltInTimer;
   out.sound = out.sound !== false;
   out.timerVideoUrl = String(out.timerVideoUrl ?? '');
+  out.playersPerRound = Math.min(4, Math.max(1, Math.trunc(Number(out.playersPerRound)) || DEFAULT_SETTINGS.playersPerRound));
+  out.playersPerTeam = Math.min(3, Math.max(1, Math.trunc(Number(out.playersPerTeam)) || DEFAULT_SETTINGS.playersPerTeam));
   return out;
 }
 
@@ -57,10 +69,13 @@ function normalize(s) {
   const base = freshState();
   const games = Array.isArray(s.games) ? s.games.map(normalizeGame).filter(Boolean) : base.games;
   const ids = new Set(games.map((g) => g.id));
+  const players = Array.isArray(s.players) ? s.players.map(normalizePlayer).filter(Boolean) : [];
+  const playerIds = new Set(players.flatMap((p) => [p.id, ...p.members.map((m) => m.id)]));
   return {
     games,
     playedIds: Array.isArray(s.playedIds) ? s.playedIds.filter((id) => ids.has(id)) : [],
-    players: Array.isArray(s.players) ? s.players.map(normalizePlayer).filter(Boolean) : [],
+    players,
+    turnTakenIds: Array.isArray(s.turnTakenIds) ? s.turnTakenIds.filter((id) => playerIds.has(id)) : [],
     settings: normalizeSettings(s.settings),
   };
 }
@@ -114,8 +129,46 @@ export function newGame() {
   return normalizeGame({ id: uid(), name: 'New game', instructions: '', videoUrl: '', image: '', enabled: true });
 }
 
+/** True when any scoreboard entry has team members. Then "Who's up?" picks from each team. */
+export function teamMode() {
+  return state.players.some((p) => p.members.length > 0);
+}
+
+/** The people on a team. A team without members is just one person: itself. */
+export function rosterOf(team) {
+  return team.members.length ? team.members : [{ id: team.id, name: team.name }];
+}
+
+/** Turns "Sam, Alex" into team members. People already on the team keep their id (and their turn history). */
+export function parseMembers(text, existing = []) {
+  const names = String(text)
+    .split(/[,\n]/)
+    .map((n) => n.trim().slice(0, 24))
+    .filter(Boolean);
+  const unused = [...existing];
+  return names.map((name) => {
+    const i = unused.findIndex((m) => m.name.toLowerCase() === name.toLowerCase());
+    return i >= 0 ? { id: unused.splice(i, 1)[0].id, name } : { id: uid(), name };
+  });
+}
+
+/** Players with the most points, or none if nobody has scored. */
+export function leaders() {
+  const top = Math.max(0, ...state.players.map((p) => p.score));
+  return top > 0 ? state.players.filter((p) => p.score === top) : [];
+}
+
+/** Everything back to the start of a night: scores to 0, every game and player back on the wheel. */
+export function newNight() {
+  update((s) => {
+    s.players.forEach((p) => (p.score = 0));
+    s.playedIds = [];
+    s.turnTakenIds = [];
+  });
+}
+
 export function newPlayer(name) {
-  return normalizePlayer({ id: uid(), name, score: 0 });
+  return normalizePlayer({ id: uid(), name, score: 0, members: [] });
 }
 
 export function defaultGames() {
@@ -148,6 +201,9 @@ export function importData(data) {
     s.games = next.games;
     s.playedIds = [];
     if (data.settings) s.settings = next.settings;
-    if (Array.isArray(data.players)) s.players = next.players;
+    if (Array.isArray(data.players)) {
+      s.players = next.players;
+      s.turnTakenIds = [];
+    }
   });
 }

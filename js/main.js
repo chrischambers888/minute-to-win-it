@@ -1,12 +1,14 @@
-// Minute to Win It: wheel → game → clock.
-import { state, update, subscribe, wheelGames, onSaveError } from './store.js';
-import { Wheel } from './wheel.js';
+// Minute to Win It: wheel → game → clock, and the winner at the end of the night.
+import { state, update, subscribe, wheelGames, onSaveError, leaders, newNight, teamMode } from './store.js';
+import { Wheel, randomIndex } from './wheel.js';
 import * as sound from './audio.js';
 import { burst } from './confetti.js';
 import { TimerController } from './timer.js';
 import { loadYouTubeApi, parseYouTube, createPlayer } from './youtube.js';
 import { mountScoreboard, renderAwards, handleAwardClick } from './scoreboard.js';
 import { setupEditor } from './editor.js';
+import { createPicker, canPick, maxPicks, picksWanted } from './picker.js';
+import { renderWinner } from './winner.js';
 
 const $ = (sel) => document.querySelector(sel);
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -20,6 +22,9 @@ let currentColor = null;
 let spinning = false;
 let gamePlayer = null;
 let videoToken = 0;
+// Who's up for the current game (from the "Who's up?" wheel).
+const nobodyUp = () => ({ picks: [], taken: null, counted: false });
+let up = nobodyUp();
 
 // ---------- Messages ----------
 let toastTimer = 0;
@@ -59,7 +64,13 @@ function refreshWheel() {
   const area = $('#wheel-area');
   area.classList.toggle('is-empty', list.length === 0);
   $('#wheel-empty-title').textContent = total === 0 ? 'No games on the wheel yet' : 'Every game has been played';
+  // When the last game is done and someone has points, crowning the winner is the big button.
+  const crown = total > 0 && leaders().length > 0;
+  $('#wheel-empty-crown').hidden = !crown;
   $('#wheel-empty-reset').hidden = total === 0;
+  $('#wheel-empty-reset').classList.toggle('btn-go', !crown);
+  $('#wheel-empty-reset').classList.toggle('btn-huge', !crown);
+  $('#wheel-empty-reset').classList.toggle('btn-quiet', crown);
   $('#wheel-empty-manage').hidden = total !== 0;
   renderGamesLeft(list.length, total);
 }
@@ -98,13 +109,8 @@ $('#games-left').addEventListener('click', (e) => {
   if (btn.dataset.act === 'unplay') update((s) => (s.playedIds = s.playedIds.filter((id) => id !== btn.dataset.id)));
 });
 $('#wheel-empty-reset').addEventListener('click', resetWheel);
+$('#wheel-empty-crown').addEventListener('click', () => showWinner());
 $('#wheel-empty-manage').addEventListener('click', () => editor.open());
-
-function randomIndex(n) {
-  const buf = new Uint32Array(1);
-  crypto.getRandomValues(buf);
-  return Math.floor((buf[0] / 2 ** 32) * n);
-}
 
 async function spin() {
   if (spinning || screen !== 'wheel') return;
@@ -155,7 +161,8 @@ function fillGameDetails(game) {
     pic.querySelector('img').alt = `Picture for ${game.name}`;
   }
   // With a video, the picture sits under the instructions. Without one, it takes the big spot.
-  (yt ? $('#game-info') : $('#game-media')).append(pic);
+  if (yt) $('#game-who').before(pic);
+  else $('#game-media').append(pic);
   $('#game-clock').hidden = !!yt || !!game.image;
   $('#game-layout').classList.toggle('has-video', !!yt);
   $('#game-video').hidden = !yt;
@@ -173,6 +180,8 @@ function showGame(game, color) {
   document.body.style.setProperty('--glow', color);
   fillGameDetails(game);
   setupGameVideo(parseYouTube(game.videoUrl));
+  up = nobodyUp();
+  renderWho();
   $('#timesup').hidden = true;
   showScreen('game');
   requestAnimationFrame(() => $('#btn-start-clock').focus({ preventScroll: true }));
@@ -243,6 +252,78 @@ $('#btn-start-clock').addEventListener('click', startClock);
 $('#btn-back-wheel').addEventListener('click', backToWheel);
 $('#btn-respin').addEventListener('click', putBackAndSpin);
 
+// ---------- Who's up? ----------
+const personIcon = `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4" fill="currentColor"/><path d="M4 21a8 8 0 0 1 16 0z" fill="currentColor"/></svg>`;
+
+function renderWho() {
+  const el = $('#game-who');
+  const enough = canPick();
+  el.hidden = !enough;
+  $('#keys-who').hidden = !enough;
+  if (!enough) return;
+
+  if (up.picks.length) {
+    el.innerHTML = `
+      <span class="who-label">Up now</span>
+      <ul class="who-chips">${up.picks
+        .map(
+          (x) =>
+            `<li style="--slice: ${x.color}">${esc(x.name)}${x.teamName && x.id !== x.teamId ? ` <small>${esc(x.teamName)}</small>` : ''}</li>`,
+        )
+        .join('')}</ul>
+      <button class="link-btn" type="button" data-act="pick">Pick again</button>`;
+    return;
+  }
+  const max = maxPicks();
+  const want = picksWanted();
+  const teams = teamMode();
+  el.innerHTML = `
+    <button class="btn btn-quiet who-btn" type="button" data-act="pick">${personIcon}Who’s up?</button>
+    ${
+      max >= 2
+        ? `<div class="seg" role="group" aria-label="${teams ? 'How many players to pick from each team' : 'How many players to pick'}">
+            <span class="seg-label">${teams ? 'Per team' : 'Pick'}</span>
+            ${Array.from({ length: max }, (_, i) => i + 1)
+              .map((n) => `<button class="seg-btn" type="button" data-act="count" data-n="${n}" aria-pressed="${n === want}">${n}</button>`)
+              .join('')}
+          </div>`
+        : ''
+    }`;
+}
+
+$('#game-who').addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-act]');
+  if (!btn) return;
+  if (btn.dataset.act === 'pick') picker.open();
+  if (btn.dataset.act === 'count') {
+    const n = Number(btn.dataset.n);
+    const key = teamMode() ? 'playersPerTeam' : 'playersPerRound';
+    update((s) => (s.settings[key] = n));
+    renderWho();
+    $(`#game-who [data-n="${n}"]`)?.focus({ preventScroll: true });
+  }
+});
+
+const picker = createPicker($('#picker'), {
+  reducedMotion,
+  onDone: (picks) => {
+    up = { ...picks, counted: false };
+    renderWho();
+    requestAnimationFrame(() => $('#btn-start-clock').focus({ preventScroll: true }));
+  },
+  onClose: () => {
+    renderWho();
+    requestAnimationFrame(() => $('#game-who [data-act=pick]')?.focus({ preventScroll: true }));
+  },
+});
+
+/** Once the clock starts, the players who are up have had their turn. */
+function countTurns() {
+  if (!up.picks.length || up.counted) return;
+  up.counted = true;
+  update((s) => (s.turnTakenIds = up.taken));
+}
+
 // ---------- Timer screen ----------
 const timer = new TimerController($('#screen-timer'), {
   onTimesUp: showTimesUp,
@@ -257,6 +338,7 @@ function startClock() {
   } catch {
     /* not ready */
   }
+  countTurns();
   $('#timesup').hidden = true;
   showScreen('timer');
   timer.start(state.settings);
@@ -277,7 +359,7 @@ function restartClock() {
 }
 
 function showTimesUp() {
-  renderAwards($('#award'));
+  renderAwards($('#award'), up.picks);
   $('#timesup').hidden = false;
   $('#timesup-game').textContent = currentGame ? currentGame.name : '';
   requestAnimationFrame(() => $('#btn-timesup-wheel').focus({ preventScroll: true }));
@@ -299,6 +381,50 @@ $('#btn-stall-builtin').addEventListener('click', () => timer.switchToBuiltIn())
 $('#btn-timesup-wheel').addEventListener('click', backToWheel);
 $('#btn-timesup-again').addEventListener('click', restartClock);
 $('#award').addEventListener('click', handleAwardClick);
+
+// ---------- Winner ----------
+let winnerToken = 0;
+
+async function showWinner() {
+  if (!leaders().length) return toast('Nobody has any points yet.');
+  sound.unlock();
+  const token = ++winnerToken;
+  const el = $('#screen-winner');
+  el.classList.remove('is-revealed');
+  renderWinner({ kicker: $('#winner-kicker'), title: $('#winner-title'), podium: $('#podium'), rest: $('#winner-rest') });
+  document.body.style.setProperty('--glow', '#ffc736');
+  showScreen('winner');
+
+  const roll = reducedMotion.matches ? 1200 : 2600;
+  sound.drumroll(roll / 1000);
+  await wait(roll);
+  if (token !== winnerToken || screen !== 'winner') return;
+
+  el.classList.add('is-revealed');
+  sound.victory();
+  const gold = ['#ffc736', '#ffe08a', '#ffffff', '#f5b100', '#1f8bff', '#e11d2e'];
+  [700, 1400, 2200].forEach((ms) =>
+    setTimeout(() => token === winnerToken && screen === 'winner' && burst(gold), reducedMotion.matches ? 0 : ms),
+  );
+  setTimeout(() => token === winnerToken && $('#btn-winner-wheel').focus({ preventScroll: true }), reducedMotion.matches ? 0 : 1300);
+}
+
+function leaveWinner() {
+  winnerToken++;
+  document.body.style.removeProperty('--glow');
+  showScreen('wheel');
+  requestAnimationFrame(() => $('#btn-spin').focus({ preventScroll: true }));
+}
+
+function startNewNight() {
+  if (!confirm('Start a new night? Every score goes back to 0 and every game goes back on the wheel.')) return;
+  newNight();
+  leaveWinner();
+  toast('New night! Scores are back to 0 and every game is on the wheel.');
+}
+
+$('#btn-winner-wheel').addEventListener('click', leaveWinner);
+$('#btn-winner-new').addEventListener('click', startNewNight);
 
 // ---------- Top bar ----------
 const editor = setupEditor({
@@ -360,6 +486,11 @@ document.addEventListener('keydown', (e) => {
   if (key === 'f' || key === 'F') return toggleFullscreen();
   if (key === 'm' || key === 'M') return toggleSound();
 
+  if (picker.isOpen) {
+    if (key === 'Escape') picker.escape();
+    return;
+  }
+
   if (screen === 'wheel' && activate) {
     e.preventDefault();
     spin();
@@ -368,6 +499,9 @@ document.addEventListener('keydown', (e) => {
       e.preventDefault();
       startClock();
     } else if (key === 'Escape') backToWheel();
+    else if (key === 'p' || key === 'P') picker.open();
+  } else if (screen === 'winner') {
+    if (key === 'Escape') leaveWinner();
   } else if (screen === 'timer') {
     const timesUp = !$('#timesup').hidden;
     if (key === 'Escape') timesUp ? backToWheel() : stopClock();
@@ -378,7 +512,7 @@ document.addEventListener('keydown', (e) => {
 });
 
 // ---------- Start up ----------
-mountScoreboard($('#scoreboard'));
+mountScoreboard($('#scoreboard'), { onCrown: showWinner });
 sound.setEnabled(state.settings.sound);
 renderSoundButton();
 showScreen('wheel');
