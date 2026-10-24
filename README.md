@@ -24,7 +24,7 @@ Each visitor gets their own copy of the games and scores, saved in their browser
 
 1. **Spin.** Click the wheel or press <kbd>Space</kbd>. Whatever it lands on comes off the wheel until you click **Reset the wheel**.
 2. **Read the game.** The instructions and video (if the game has one) come up. Not feeling it? **Put back and spin again**.
-3. **Who's up?** (optional, needs 2+ players on the scoreboard) Click **Who's up?** or press <kbd>P</kbd> and a smaller wheel picks 1 to 4 players for the game. Players come off that wheel once they've played, so everyone gets a turn before anyone goes twice.
+3. **Who's up?** (optional, needs 2+ players on the scoreboard) Click **Who's up?** or press <kbd>P</kbd> and a smaller wheel picks 1 to 4 players for the game. Turns stay even: the wheel only shows whoever has played the fewest times, and whoever just played sits out if someone else is as due, so nobody plays twice in a row. Being picked uses up a turn. **Pick again** chooses different people, and **Put back and spin again** gives the turns back.
 4. **Start the clock.** Press <kbd>Enter</kbd> or click the big button. The official timer plays full screen.
 5. **Time's up.** Click a player or team to give them a point (whoever was up is listed first), then go back to the wheel.
 6. **Crown the winner.** At the end of the night, click **Crown the winner** on the scoreboard (it also pops up when every game has been played). A drum roll, then the podium. **Start a new night** sets every score to 0 and puts every game back on the wheel.
@@ -75,6 +75,7 @@ js/timer.js         the countdown (YouTube video or built-in)
 js/editor.js        the Manage games window
 js/scoreboard.js    scores and points
 js/picker.js        the "Who's up?" player wheel
+js/turns.js         who's due next (keeps turns even)
 js/winner.js        the end-of-night podium
 js/store.js         saving to the browser
 js/defaults.js      the original 12 games and default settings

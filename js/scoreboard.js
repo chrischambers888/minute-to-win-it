@@ -118,7 +118,8 @@ export function mountScoreboard(el, { onCrown } = {}) {
       if (confirm('Set every score back to 0?'))
         update((s) => {
           s.players.forEach((p) => (p.score = 0));
-          s.turnTakenIds = [];
+          s.turns = {};
+          s.lastUpIds = [];
         });
     } else if (act === 'crown') {
       onCrown?.();

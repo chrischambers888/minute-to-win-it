@@ -1,7 +1,8 @@
 // "Who's up?": a smaller wheel that picks which players take on the game.
-// Players come off this wheel once they've had a turn. When everyone has played, they all go back on.
+// The wheel only shows whoever is due (see turns.js), so everyone plays the same number of times.
 // With teams, it spins once for each team and picks from that team's members, so it's one person vs one person.
 import { state, teamMode, rosterOf } from './store.js';
+import { whoIsDue } from './turns.js';
 import { Wheel, randomIndex, assignColors, teamColors, shadesOf } from './wheel.js';
 import * as sound from './audio.js';
 import { burst } from './confetti.js';
@@ -62,10 +63,12 @@ function matchup(picked, teams) {
   return [...byTeam.values()].map((names) => names.join(' & ')).join(' vs ');
 }
 
+const nameList = (people) =>
+  people.length <= 2 ? people.map((p) => p.name).join(' and ') : `${people.slice(0, -1).map((p) => p.name).join(', ')} and ${people.at(-1).name}`;
+
 /**
  * root: the #picker overlay.
- * onDone({ picks, taken }) runs when the host accepts. picks: [{ id, name, color, teamId, teamName }].
- * `taken` is what state.turnTakenIds should become once these people actually play.
+ * onDone(picks) runs when the host accepts. picks: [{ id, name, color, teamId, teamName }].
  * onClose() runs whenever the overlay closes without picks.
  */
 export function createPicker(root, { reducedMotion, onDone, onClose }) {
@@ -78,6 +81,7 @@ export function createPicker(root, { reducedMotion, onDone, onClose }) {
   const outside = [document.querySelector('main'), document.querySelector('.topbar')];
   let token = 0;
   let result = null;
+  let avoid = [];
 
   async function run() {
     const my = ++token;
@@ -91,7 +95,8 @@ export function createPicker(root, { reducedMotion, onDone, onClose }) {
     const teams = teamMode();
     const groups = groupsToPick();
     const count = picksWanted();
-    let taken = new Set(state.turnTakenIds);
+    const recent = new Set(state.lastUpIds);
+    const skip = new Set(avoid);
     const picked = [];
     const intro = teams
       ? count === 1
@@ -104,15 +109,12 @@ export function createPicker(root, { reducedMotion, onDone, onClose }) {
     for (const group of groups) {
       if (group.team) title.textContent = `Who’s up for ${group.team.name}?`;
       for (let k = 0; k < group.count; k++) {
-        let pool = group.people.filter((p) => !taken.has(p.id) && !picked.some((x) => x.id === p.id));
-        if (!pool.length) {
-          // Everyone here has had a turn. They all go back on, except whoever was just picked.
-          group.people.forEach((p) => taken.delete(p.id));
-          picked.forEach((p) => taken.add(p.id));
-          pool = group.people.filter((p) => !taken.has(p.id));
-          note.textContent = group.team
-            ? `Everyone on ${group.team.name} has had a turn, so they’re all back on the wheel.`
-            : 'Everyone has had a turn, so they’re all back on the wheel.';
+        const candidates = group.people.filter((p) => !picked.some((x) => x.id === p.id));
+        const { pool, sittingOut, startedOver } = whoIsDue(candidates, state.turns, recent, skip);
+        if (startedOver) {
+          const everyone = group.team ? `Everyone on ${group.team.name}` : 'Everyone';
+          const rest = sittingOut.length ? ` ${nameList(sittingOut)} ${sittingOut.length === 1 ? 'sits' : 'sit'} this one out.` : '';
+          note.textContent = `${everyone} has played, so they’re back on the wheel.${rest}`;
         } else if (group.team) note.textContent = intro;
 
         const person = pool[randomIndex(pool.length)];
@@ -125,7 +127,6 @@ export function createPicker(root, { reducedMotion, onDone, onClose }) {
         // A one-person team just plays. No need to spin for it.
         if (group.people.length === 1) {
           picked.push(pick);
-          taken.add(person.id);
           chosen.insertAdjacentHTML('beforeend', chip);
           continue;
         }
@@ -142,7 +143,6 @@ export function createPicker(root, { reducedMotion, onDone, onClose }) {
           if (my !== token) return;
         }
         picked.push(pick);
-        taken.add(person.id);
 
         sound.fanfare();
         wheel.celebrate(index);
@@ -156,7 +156,7 @@ export function createPicker(root, { reducedMotion, onDone, onClose }) {
       }
     }
 
-    result = { picks: picked, taken: [...taken] };
+    result = picked;
     title.textContent = matchup(picked, teams);
     note.textContent = 'You’re up!';
     root.classList.add('is-done');
@@ -186,7 +186,11 @@ export function createPicker(root, { reducedMotion, onDone, onClose }) {
   root.addEventListener('click', (e) => {
     const act = e.target.closest('[data-act]')?.dataset.act;
     if (act === 'done') accept();
-    else if (act === 'again') run();
+    else if (act === 'again') {
+      // Steer away from whoever was just shown, if anyone else is as due.
+      if (result) avoid = [...avoid, ...result.map((p) => p.id)];
+      run();
+    }
     else if (act === 'cancel') close();
   });
 
@@ -194,8 +198,10 @@ export function createPicker(root, { reducedMotion, onDone, onClose }) {
     get isOpen() {
       return !root.hidden;
     },
-    open() {
+    /** avoid: ids to rest if possible, e.g. the people being replaced by "Pick again". */
+    open(avoidIds = []) {
       if (!canPick()) return;
+      avoid = avoidIds;
       sound.unlock();
       outside.forEach((el) => (el.inert = true));
       root.hidden = false;

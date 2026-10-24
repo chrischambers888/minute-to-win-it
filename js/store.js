@@ -17,7 +17,8 @@ function freshState() {
     games: clone(DEFAULT_GAMES),
     playedIds: [],
     players: [],
-    turnTakenIds: [], // players who've had a turn since everyone was last back on the "Who's up?" wheel
+    turns: {}, // "Who's up?": how many times each person has played tonight, by id
+    lastUpIds: [], // who was up for the last game (they sit out next if someone else is due)
     settings: clone(DEFAULT_SETTINGS),
   };
 }
@@ -65,6 +66,17 @@ function normalizeSettings(s) {
   return out;
 }
 
+function normalizeTurns(s, ids) {
+  const turns = {};
+  if (s.turns && typeof s.turns === 'object') {
+    for (const [id, n] of Object.entries(s.turns)) if (ids.has(id) && n > 0) turns[id] = Math.trunc(n);
+  } else if (Array.isArray(s.turnTakenIds)) {
+    // Older saves only listed who had played this round.
+    s.turnTakenIds.filter((id) => ids.has(id)).forEach((id) => (turns[id] = 1));
+  }
+  return turns;
+}
+
 function normalize(s) {
   const base = freshState();
   const games = Array.isArray(s.games) ? s.games.map(normalizeGame).filter(Boolean) : base.games;
@@ -75,7 +87,8 @@ function normalize(s) {
     games,
     playedIds: Array.isArray(s.playedIds) ? s.playedIds.filter((id) => ids.has(id)) : [],
     players,
-    turnTakenIds: Array.isArray(s.turnTakenIds) ? s.turnTakenIds.filter((id) => playerIds.has(id)) : [],
+    turns: normalizeTurns(s, playerIds),
+    lastUpIds: Array.isArray(s.lastUpIds) ? s.lastUpIds.filter((id) => playerIds.has(id)) : [],
     settings: normalizeSettings(s.settings),
   };
 }
@@ -150,7 +163,8 @@ export function newNight() {
   update((s) => {
     s.players.forEach((p) => (p.score = 0));
     s.playedIds = [];
-    s.turnTakenIds = [];
+    s.turns = {};
+    s.lastUpIds = [];
   });
 }
 
@@ -190,7 +204,8 @@ export function importData(data) {
     if (data.settings) s.settings = next.settings;
     if (Array.isArray(data.players)) {
       s.players = next.players;
-      s.turnTakenIds = [];
+      s.turns = {};
+      s.lastUpIds = [];
     }
   });
 }

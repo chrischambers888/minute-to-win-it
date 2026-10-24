@@ -23,7 +23,8 @@ let spinning = false;
 let gamePlayer = null;
 let videoToken = 0;
 // Who's up for the current game (from the "Who's up?" wheel).
-const nobodyUp = () => ({ picks: [], taken: null, counted: false });
+// `undo` holds the play counts from before these picks, so they can be given back.
+const nobodyUp = () => ({ picks: [], undo: null });
 let up = nobodyUp();
 
 // ---------- Messages ----------
@@ -242,6 +243,7 @@ function backToWheel() {
 }
 
 function putBackAndSpin() {
+  giveTurnsBack(); // the game didn't happen, so nobody used up a turn
   const id = currentGame?.id;
   if (id) update((s) => (s.playedIds = s.playedIds.filter((x) => x !== id)));
   backToWheel();
@@ -294,7 +296,7 @@ function renderWho() {
 $('#game-who').addEventListener('click', (e) => {
   const btn = e.target.closest('[data-act]');
   if (!btn) return;
-  if (btn.dataset.act === 'pick') picker.open();
+  if (btn.dataset.act === 'pick') pickWhoIsUp();
   if (btn.dataset.act === 'count') {
     const n = Number(btn.dataset.n);
     const key = teamMode() ? 'playersPerTeam' : 'playersPerRound';
@@ -307,7 +309,7 @@ $('#game-who').addEventListener('click', (e) => {
 const picker = createPicker($('#picker'), {
   reducedMotion,
   onDone: (picks) => {
-    up = { ...picks, counted: false };
+    up = { picks, undo: countTurns(picks) };
     renderWho();
     requestAnimationFrame(() => $('#btn-start-clock').focus({ preventScroll: true }));
   },
@@ -317,11 +319,31 @@ const picker = createPicker($('#picker'), {
   },
 });
 
-/** Once the clock starts, the players who are up have had their turn. */
-function countTurns() {
-  if (!up.picks.length || up.counted) return;
-  up.counted = true;
-  update((s) => (s.turnTakenIds = up.taken));
+/** Being picked uses up a turn. Returns what's needed to give it back. */
+function countTurns(picks) {
+  const undo = { turns: Object.fromEntries(picks.map((p) => [p.id, state.turns[p.id] || 0])), lastUpIds: [...state.lastUpIds] };
+  update((s) => {
+    picks.forEach((p) => (s.turns[p.id] = (s.turns[p.id] || 0) + 1));
+    s.lastUpIds = picks.map((p) => p.id);
+  });
+  return undo;
+}
+
+function giveTurnsBack() {
+  const { undo } = up;
+  if (!undo) return;
+  update((s) => {
+    Object.assign(s.turns, undo.turns);
+    s.lastUpIds = undo.lastUpIds;
+  });
+  up = nobodyUp();
+}
+
+/** "Who's up?" or "Pick again". Picking again gives the turns back and tries for different people. */
+function pickWhoIsUp() {
+  const replacing = up.picks.map((p) => p.id);
+  giveTurnsBack();
+  picker.open(replacing);
 }
 
 // ---------- Timer screen ----------
@@ -338,7 +360,6 @@ function startClock() {
   } catch {
     /* not ready */
   }
-  countTurns();
   $('#timesup').hidden = true;
   showScreen('timer');
   timer.start(state.settings);
@@ -499,7 +520,7 @@ document.addEventListener('keydown', (e) => {
       e.preventDefault();
       startClock();
     } else if (key === 'Escape') backToWheel();
-    else if (key === 'p' || key === 'P') picker.open();
+    else if (key === 'p' || key === 'P') pickWhoIsUp();
   } else if (screen === 'winner') {
     if (key === 'Escape') leaveWinner();
   } else if (screen === 'timer') {
