@@ -14,6 +14,7 @@ export const DEFAULT_SETTINGS = {
   sound: true,
   playersPerRound: 2, // how many players "Who's up?" picks for each game
   playersPerTeam: 1, // with teams: how many people "Who's up?" picks from each team
+  shopPlayers: 0, // shopping list: how many people play each game (0 = the "Who's up?" number)
 };
 
 export const DEFAULT_GAMES = [
@@ -32,7 +33,7 @@ export const DEFAULT_GAMES = [
     name: 'Ready Spaghetti',
     instructions:
       'Players will have a piece of spaghetti in their mouth and will have to get 6 pieces of penne onto the spaghetti in 60 seconds. Failure to do so will result in no point.',
-    supplies: ['Uncooked spaghetti', '6 pieces of uncooked penne'],
+    supplies: ['1 piece of uncooked spaghetti', '6 pieces of uncooked penne'],
     videoUrl: '',
     image: '',
     enabled: true,
@@ -63,7 +64,7 @@ export const DEFAULT_GAMES = [
     name: 'Nerf Llama',
     instructions:
       'Players will try to knock down as many cans / cups as they can with Nerf bullets. Player with the greatest number of cups knocked down wins.',
-    supplies: ['Nerf blaster', 'Nerf darts', 'Empty cans or plastic cups'],
+    supplies: ['1 Nerf blaster', '10 Nerf darts', '10 empty cans or plastic cups'],
     videoUrl: '',
     image: 'assets/images/nerf-llama.jpg',
     enabled: true,
@@ -125,7 +126,7 @@ export const DEFAULT_GAMES = [
     name: 'Worm Dive',
     instructions:
       'Players will have to dive their face into a bowl of whipped cream to search for 5 gummy worms and eat them or put them onto a plate in 60 seconds. Failure to do so will result in no point.',
-    supplies: ['1 bowl', 'Whipped cream to fill the bowl', '5 gummy worms', '1 plate', 'Paper towels'],
+    supplies: ['1 bowl', '1 can of whipped cream', '5 gummy worms', '1 plate', 'Paper towels'],
     videoUrl: '',
     image: '',
     enabled: true,

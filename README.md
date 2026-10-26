@@ -71,11 +71,11 @@ Don't add any players to a team to play as individuals.
 
 ## Supplies and the shopping list
 
-Each game can have a **You'll need** list, like "3 balloons" or "36 plastic cups". It shows under the instructions on the game screen, so everyone can see what to set up.
+Each game can have a **You'll need** list of what one player needs, like "3 balloons" or "36 plastic cups". It shows under the instructions on the game screen as **Each player needs**, so everyone can see what to set up.
 
-- **Adding supplies:** in **Manage games**, pick a game and type in **Add an item** under **You'll need**. Press <kbd>Enter</kbd> to add it, then type the next one. Each item gets its own line, with an × to remove it. Pasting a list adds one item per line.
-- **Amounts are for one player.** If two people play at once, get two sets.
+- **Adding supplies:** in **Manage games**, pick a game and type in **Add an item** under **You'll need**. Press <kbd>Enter</kbd> to add it, then type the next one. Each item gets its own line, with an × to remove it. Pasting a list adds one item per line. Start an item with a number ("3 balloons") so the shopping list can multiply it. An item without a number counts as 1.
 - **Shopping list:** **Manage games → Shopping list** shows the supplies for every game on the wheel in one list, grouped by game (hidden games are left out). **Print** prints just the list, with a box to tick off each item.
+- **Players per game:** the shopping list multiplies every amount by how many people play each game at the same time. With 2 players, "3 balloons" becomes 6 balloons and "1 straw" becomes 2 straws. It starts at your **Who's up?** number (with teams, that's the number of teams times the players picked from each). Change it with − and +; the site remembers it.
 
 The 12 starting games come with their supplies filled in. Starting games in older saves and backups get these lists too. Games you added start with an empty list.
 

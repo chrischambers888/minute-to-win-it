@@ -76,6 +76,7 @@ function normalizeSettings(s) {
   out.timerVideoUrl = String(out.timerVideoUrl ?? '');
   out.playersPerRound = Math.min(4, Math.max(1, Math.trunc(Number(out.playersPerRound)) || DEFAULT_SETTINGS.playersPerRound));
   out.playersPerTeam = Math.min(3, Math.max(1, Math.trunc(Number(out.playersPerTeam)) || DEFAULT_SETTINGS.playersPerTeam));
+  out.shopPlayers = Math.min(30, Math.max(0, Math.trunc(Number(out.shopPlayers)) || 0));
   return out;
 }
 

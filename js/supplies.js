@@ -1,6 +1,7 @@
 // "You'll need": each game's supplies.
 // The editor lines in Manage games, the list on the game screen, and the shopping list (with its print view).
-import { state, update } from './store.js';
+import { state, update, teamMode } from './store.js';
+import { canPick, picksWanted } from './picker.js';
 
 const esc = (s) =>
   String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -16,7 +17,7 @@ export function renderNeeds(el, game) {
   const items = game.supplies || [];
   el.hidden = !items.length;
   el.innerHTML = items.length
-    ? `<h3 class="needs-label">You’ll need</h3>
+    ? `<h3 class="needs-label">Each player needs</h3>
        <ul class="needs-list">${items.map((s) => `<li>${esc(s)}</li>`).join('')}</ul>`
     : '';
 }
@@ -28,7 +29,7 @@ export function suppliesFieldHtml(game) {
   return `<div class="field">
     <span class="label" id="f-supplies-label">You’ll need <span class="optional">(optional)</span></span>
     <ul class="supply-list" data-supplies aria-labelledby="f-supplies-label">${rowsHtml(game.supplies)}</ul>
-    <p class="field-help">Supplies for one player, one per line, like “3 balloons”. Press Enter to add the next one. They show on the game screen and in the shopping list.</p>
+    <p class="field-help">What one player needs, one item per line, like “3 balloons”. Press Enter to add the next one. The shopping list multiplies these by the number of players.</p>
   </div>`;
 }
 
@@ -139,7 +140,36 @@ export function mountSuppliesEditor(form, { getId, saved }) {
 
 // ---------- Manage games: the shopping list ----------
 
-function groupsHtml(games, editable) {
+const MAX_PLAYERS = 30;
+
+/** How many people play each game: the number set on the shopping list, or else the "Who's up?" number. */
+function playersPerGame() {
+  if (state.settings.shopPlayers) return state.settings.shopPlayers;
+  if (!canPick()) return state.settings.playersPerRound;
+  return teamMode() ? state.players.length * picksWanted() : picksWanted();
+}
+
+/** "3 balloons" is for one player, so 2 players need 6 balloons. An item without a number counts as 1. */
+function forPlayers(item, players) {
+  const m = item.match(/^(\d+)\s+(.+)$/);
+  if (!m) return { qty: players, name: item };
+  const qty = Number(m[1]) * players;
+  return { qty, name: m[1] === '1' && qty > 1 ? pluralize(m[2]) : m[2] };
+}
+
+/** "straw" → "straws", "piece of spaghetti" → "pieces of spaghetti". Leaves anything it can't read alone. */
+function pluralize(name) {
+  const [, before, word, after] = name.match(/^(.*?)([a-z]+)( of .*)$/i) || name.match(/^(.*?)([a-z]+)()$/i) || [];
+  if (!word) return name;
+  const many = /(s|x|z|ch|sh)$/i.test(word) ? `${word}es` : /[^aeiou]y$/i.test(word) ? `${word.slice(0, -1)}ies` : `${word}s`;
+  return before + many + after;
+}
+
+function groupsHtml(games, players, editable) {
+  const itemHtml = (s) => {
+    const { qty, name } = forPlayers(s, players);
+    return `<li><b class="shop-qty">${qty}</b><span>${esc(name)}</span></li>`;
+  };
   return games
     .map(
       (g) => `<section class="shop-group">
@@ -147,7 +177,7 @@ function groupsHtml(games, editable) {
           <h4 class="shop-game">${esc(g.name)}</h4>
           ${editable ? `<button class="link-btn subtle" type="button" data-edit="${g.id}" aria-label="Edit ${esc(g.name)}">Edit</button>` : ''}
         </div>
-        <ul class="shop-items">${g.supplies.map((s) => `<li>${esc(s)}</li>`).join('')}</ul>
+        <ul class="shop-items">${g.supplies.map(itemHtml).join('')}</ul>
       </section>`,
     )
     .join('');
@@ -172,9 +202,8 @@ export function mountShoppingList(el, { onEdit }) {
 
   function render() {
     const { games, needs, none } = lists();
-    const lead = !games.length
-      ? 'There are no games on the wheel.'
-      : `Everything for the ${plural(games.length, 'game')} on the wheel. Amounts are for one player, so get extra if more people will play.`;
+    const players = playersPerGame();
+    const lead = games.length ? `Everything for the ${plural(games.length, 'game')} on the wheel.` : 'There are no games on the wheel.';
     el.innerHTML = `
       <div class="shop-head">
         <div>
@@ -183,9 +212,20 @@ export function mountShoppingList(el, { onEdit }) {
         </div>
         <button class="btn btn-small" type="button" data-print ${needs.length ? '' : 'disabled'}>Print</button>
       </div>
+      <div class="shop-count">
+        <span class="shop-count-label" id="shop-count-label">Players per game</span>
+        <div class="shop-stepper" role="group" aria-labelledby="shop-count-label">
+          <button class="score-btn" type="button" data-shop-step="-1" aria-label="Fewer players" ${players <= 1 ? 'disabled' : ''}>−</button>
+          <output class="shop-count-num" aria-live="polite">${players}</output>
+          <button class="score-btn plus" type="button" data-shop-step="1" aria-label="More players" ${players >= MAX_PLAYERS ? 'disabled' : ''}>+</button>
+        </div>
+        <p class="shop-count-help">How many people play each game at the same time. Every amount below is for all of them.${
+          state.settings.shopPlayers ? '' : ' It starts at your <b>Who’s up?</b> number.'
+        }</p>
+      </div>
       ${
         needs.length
-          ? `<div class="shop-groups">${groupsHtml(needs, true)}</div>`
+          ? `<div class="shop-groups">${groupsHtml(needs, players, true)}</div>`
           : games.length
             ? '<p class="shop-empty">None of the games on the wheel have supplies yet. Add them under <b>You’ll need</b> when you edit a game.</p>'
             : ''
@@ -201,11 +241,12 @@ export function mountShoppingList(el, { onEdit }) {
 
   function prepare() {
     const { games, needs } = lists();
+    const players = playersPerGame();
     const date = new Date().toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
     sheet.innerHTML = `
       <h3 class="print-title">Shopping list</h3>
-      <p class="print-sub">Minute to Win It · ${plural(games.length, 'game')} · ${esc(date)}<br>Amounts are for one player.</p>
-      <div class="print-groups">${groupsHtml(needs, false)}</div>`;
+      <p class="print-sub">Minute to Win It · ${plural(games.length, 'game')} · ${plural(players, 'player')} per game · ${esc(date)}</p>
+      <div class="print-groups">${groupsHtml(needs, players, false)}</div>`;
     document.documentElement.classList.add('is-printing-list');
   }
 
@@ -218,6 +259,15 @@ export function mountShoppingList(el, { onEdit }) {
     }
     const edit = e.target.closest('[data-edit]');
     if (edit) onEdit?.(edit.dataset.edit);
+    const step = e.target.closest('[data-shop-step]');
+    if (step) {
+      const n = Math.min(MAX_PLAYERS, Math.max(1, playersPerGame() + Number(step.dataset.shopStep)));
+      update((s) => (s.settings.shopPlayers = n));
+      render();
+      const [less, more] = el.querySelectorAll('[data-shop-step]');
+      const same = step.dataset.shopStep === '-1' ? less : more;
+      (same.disabled ? (same === less ? more : less) : same).focus(); // keep focus on the stepper
+    }
   });
 
   // Cmd/Ctrl+P on the shopping list prints the list too.
